@@ -8,16 +8,15 @@ multiprocessing.set_start_method('spawn', force=True)
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
-import os
 import fitz  # PyMuPDF
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import pickle
 import time
+import gc
 
-start_time = time.time()
-
+total_start_time = time.time()
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 pdf_folder = "."
@@ -41,7 +40,9 @@ def extract_text_chunks(pdf_path):
                     })
     return chunk_list, meta_list
 
-# Collect chunks and metadata
+# Timing: Chunking
+chunking_start_time = time.time()
+
 for filename in os.listdir(pdf_folder):
     if filename.endswith(".pdf"):
         c, m = extract_text_chunks(filename)
@@ -49,8 +50,13 @@ for filename in os.listdir(pdf_folder):
         metadata.extend(m)
         print(f"Extracted {len(c)} chunks from: {filename}")
 
-# Embed in batches if you have many chunks (optional)
-batch_size = 8  # you can reduce this if needed (e.g., 8 or 16)
+chunking_end_time = time.time()
+print(f"⏱️ Chunking time: {chunking_end_time - chunking_start_time:.2f} seconds")
+
+# Timing: Embedding
+embedding_start_time = time.time()
+
+batch_size = 8  # Adjust for memory safety
 embeddings = []
 for i in range(0, len(chunks), batch_size):
     batch = chunks[i:i+batch_size]
@@ -63,6 +69,9 @@ for i in range(0, len(chunks), batch_size):
     )
     embeddings.append(batch_embeddings)
 embeddings = np.vstack(embeddings)
+
+embedding_end_time = time.time()
+print(f"⏱️ Embedding time: {embedding_end_time - embedding_start_time:.2f} seconds")
 
 # Build and save FAISS index
 dimension = embeddings.shape[1]
@@ -77,15 +86,11 @@ with open("index_files/metadata.pkl", "wb") as f:
 
 print(f"✅ FAISS index and metadata saved with {len(chunks)} chunks.")
 
-end_time = time.time()
-print(f"✅ FAISS index and metadata saved with {len(chunks)} chunks.")
-print(f"⏱️ Total build time: {end_time - start_time:.2f} seconds")
+total_end_time = time.time()
+print(f"⏱️ Total build time: {total_end_time - total_start_time:.2f} seconds")
 
-import gc
-
-# Manually delete big variables
+# Clean up big variables to reduce risk of memory issues
 del embeddings
 del metadata
 del index
-
 gc.collect()

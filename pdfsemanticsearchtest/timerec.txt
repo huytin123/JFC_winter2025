@@ -1,2 +1,8 @@
 build with 2 pdfs: 10.31s
-search with 2 pdfs: 21.20s
+search with 2 pdfs: 21.20s   // dependent on how long you take to input the query as well
+
+build with 3 pdfs: 12.11s
+search with 3 pdfs: 17.50s      // dependent on how long you take to input the query as well
+
+build with 4 pdfs: 13.40s
+search with 4 pdfs: 15.38s      // dependent on how long you take to input the query as well

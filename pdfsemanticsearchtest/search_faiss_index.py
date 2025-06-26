@@ -26,22 +26,32 @@ with open("index_files/metadata.pkl", "rb") as f:
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Take user query
-query = input("Enter your semantic search query: ")
 
-# Embed the query
-query_vector = model.encode([query])
+# Query loop
+while True:
+    query = input("\nEnter your semantic search query (or type 'exit' to quit): ").strip()
+    
+    if query.lower() == 'exit':
+        print("👋 Exiting search.")
+        break
 
-# Search top 5 closest chunks
-D, I = index.search(np.array(query_vector), 5)
+    # Start timing the search
+    search_start_time = time.time()
 
-print(f"\nTop 5 semantic matches for: '{query}'\n")
+    # Embed the query
+    query_vector = model.encode([query])
 
-for idx in I[0]:
-    if idx == -1:
-        continue
-    result = metadata[idx]
-    print(f"📄 PDF: {result['pdf']} | Page: {result['page']}")
-    print(f"🔎 Snippet:\n{result['text']}\n---")
+    # Search top 5 closest chunks
+    D, I = index.search(np.array(query_vector), 5)
 
-end_time = time.time()
-print(f"⏱️ Total build time: {end_time - start_time:.2f} seconds")
+    print(f"\nTop 5 semantic matches for: '{query}'\n")
+
+    for idx in I[0]:
+        if idx == -1:
+            continue
+        result = metadata[idx]
+        print(f"📄 PDF: {result['pdf']} | Page: {result['page']}")
+        print(f"🔎 Snippet:\n{result['text']}\n---")
+
+    search_end_time = time.time()
+    print(f"⏱️ Search time: {search_end_time - search_start_time:.2f} seconds")
