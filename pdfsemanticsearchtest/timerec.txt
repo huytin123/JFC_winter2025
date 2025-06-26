@@ -1,0 +1,2 @@
+build with 2 pdfs: 10.31s
+search with 2 pdfs: 21.20s
