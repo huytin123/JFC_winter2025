@@ -85,6 +85,7 @@ class MyFrame(MyFrame1):
     @override
     def query_search( self, event ):
         text = self.text_search.GetValue()
+        self.tc.write("Searched: " + text + "\n\n")
         data = collection.query(query_texts=text, n_results=3)
         for idx in range(len(data["ids"][0])):
             current_id = data['ids'][0][idx]
@@ -94,7 +95,7 @@ class MyFrame(MyFrame1):
             self.tc.write("Top #" + str(idx+1) + "\n")
             self.tc.write(str(filename) + "\n")
             self.tc.write(str(current_id) + "\n")
-            self.tc.write(str(content) + "\n")
+            self.tc.write(str(content) + "\n\n")
 
         
 def extract_text_chunks(pdf_path):
@@ -117,7 +118,7 @@ def extract_text_chunks(pdf_path):
 
 if __name__ == '__main__':
     app = wx.App(False)
-    chroma_client = chromadb.HttpClient(host='localhost', port=8000)
+    chroma_client = chromadb.PersistentClient(path="./chroma_store")
 
     '''
     try:
