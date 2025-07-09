@@ -6,10 +6,9 @@ import os
 import chromadb
 
 class MyFrame(MyFrame1):
-    def __init__(self, collection):
+    def __init__(self):
         super().__init__(None)
-        self.collection = collection
-        self.pdf_fetch(None)
+        self.load_build(None)
         
     @override
     def pdf_add( self, event ):
@@ -65,16 +64,20 @@ class MyFrame(MyFrame1):
         self.tc.write("Files in Database: " + str(names) + "\n")
         
         current = []
-        count = count = self.dvc.GetItemCount()
+        count = self.dvc.GetItemCount()
         for row in range(count):
             current.append(self.dvc.GetTextValue(row, 0))
 
         for item in current:
             if item not in names:
-                count = count = self.dvc.GetItemCount()
+                count = self.dvc.GetItemCount()
+                delete_row = 0
                 for row in range(count):
-                    self.dvc.DeleteItem(row)
-                    self.tc.write("Deleted: ", item + "\n")
+                    if item == self.dvc.GetTextValue(row, 0):
+                        delete_row = row
+
+                self.dvc.DeleteItem(delete_row)
+                self.tc.write("Deleted: " + str(item) + "\n")
 
         for item in names:
             if item not in current:
@@ -86,7 +89,7 @@ class MyFrame(MyFrame1):
     def query_search( self, event ):
         text = self.text_search.GetValue()
         self.tc.write("Searched: " + text + "\n\n")
-        data = collection.query(query_texts=text, n_results=3)
+        data = self.collection.query(query_texts=text, n_results=3)
         for idx in range(len(data["ids"][0])):
             current_id = data['ids'][0][idx]
             filename = data['metadatas'][0][idx]['Name']
@@ -97,6 +100,28 @@ class MyFrame(MyFrame1):
             self.tc.write(str(current_id) + "\n")
             self.tc.write(str(content) + "\n\n")
 
+    @override
+    def load_build( self, event ):
+        with wx.DirDialog (self, "Choose input directory", "",
+                    wx.DD_DEFAULT_STYLE) as folder:
+            
+            if folder.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            pathname = folder.GetPath()
+            self.tc.write("Loaded or Created Build: " + str(pathname) + "\n")
+            chroma_client = chromadb.PersistentClient(path=pathname)
+
+            '''
+            try:
+                chroma_client.delete_collection(name="my_collection")
+                #collection = chroma_client.get_or_create_collection(name="my_collection")
+            except Exception as e:
+                pass
+            '''
+
+            self.collection = chroma_client.get_or_create_collection(name="my_collection")
+            self.pdf_fetch(None)
         
 def extract_text_chunks(pdf_path):
     chunk_list = []
@@ -118,18 +143,6 @@ def extract_text_chunks(pdf_path):
 
 if __name__ == '__main__':
     app = wx.App(False)
-    chroma_client = chromadb.PersistentClient(path="./chroma_store")
-
-    '''
-    try:
-        chroma_client.delete_collection(name="my_collection")
-        #collection = chroma_client.get_or_create_collection(name="my_collection")
-    except Exception as e:
-        pass
-    '''
-    
-    collection = chroma_client.get_or_create_collection(name="my_collection")
-    
-    frame = MyFrame(collection)
+    frame = MyFrame()
     frame.Show()
     app.MainLoop()
