@@ -1,4 +1,3 @@
-
 import wx
 import wx.xrc
 import wx.dataview
@@ -24,13 +23,18 @@ class MyFrame1(wx.Frame):
         sidebarPanel.SetBackgroundColour("#8E6E6E")
         sidebarBox = wx.BoxSizer(wx.VERTICAL)
 
-        self.dvc = wx.dataview.DataViewListCtrl(sidebarPanel, wx.ID_ANY, wx.DefaultPosition, wx.Size(260, 500), 0)
+        self.dvc = wx.dataview.DataViewListCtrl(sidebarPanel, wx.ID_ANY, wx.DefaultPosition, wx.Size(260, 400), 0)
         self.dvc.SetBackgroundColour(wx.Colour(217, 217, 217))
         self.c1 = self.dvc.AppendTextColumn("Doc", wx.dataview.DATAVIEW_CELL_INERT, 180, wx.ALIGN_LEFT, 0)
         self.c2 = self.dvc.AppendTextColumn("✖", wx.dataview.DATAVIEW_CELL_INERT, 40, wx.ALIGN_CENTER, 0)
         sidebarBox.Add(self.dvc, 1, wx.ALL, 10)
 
-
+        self.dvcBuild = wx.dataview.DataViewListCtrl(sidebarPanel, wx.ID_ANY, wx.DefaultPosition, wx.Size(260, 100), 0)
+        self.dvcBuild.SetBackgroundColour(wx.Colour(217, 217, 217))
+        self.c3 = self.dvcBuild.AppendTextColumn("Build", wx.dataview.DATAVIEW_CELL_INERT, 80, wx.ALIGN_LEFT, 0)
+        self.c4 = self.dvcBuild.AppendTextColumn("Name", wx.dataview.DATAVIEW_CELL_INERT, 140, wx.ALIGN_LEFT, 0)
+        self.c5 = self.dvcBuild.AppendTextColumn("✖", wx.dataview.DATAVIEW_CELL_INERT, 40, wx.ALIGN_CENTER, 0)
+        sidebarBox.Add(self.dvcBuild, 1, wx.ALL, 10)
 
         self.btn_add = wx.Button(sidebarPanel, wx.ID_ANY, "➕ Add", wx.DefaultPosition, wx.Size(-1, 40), 0)
         self.btn_load = wx.Button(sidebarPanel, wx.ID_ANY, "🔄 Load Build", wx.DefaultPosition, wx.Size(-1, 40), 0)
