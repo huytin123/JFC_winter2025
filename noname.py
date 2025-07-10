@@ -38,9 +38,9 @@ class MyFrame1(wx.Frame):
 
         self.btn_add = wx.Button(sidebarPanel, wx.ID_ANY, "➕ Add", wx.DefaultPosition, wx.Size(-1, 40), 0)
         self.btn_load = wx.Button(sidebarPanel, wx.ID_ANY, "🔄 Load Build", wx.DefaultPosition, wx.Size(-1, 40), 0)
-        self.btn_download = wx.Button(sidebarPanel, wx.ID_ANY, "⬇ Download Build", wx.DefaultPosition, wx.Size(-1, 40), 0)
+        self.btn_refresh = wx.Button(sidebarPanel, wx.ID_ANY, "⬇ Refresh", wx.DefaultPosition, wx.Size(-1, 40), 0)
 
-        for btn in [self.btn_add, self.btn_load, self.btn_download]:
+        for btn in [self.btn_add, self.btn_load, self.btn_refresh]:
             btn.SetBackgroundColour("#8E6E6E")
             btn.SetForegroundColour(wx.Colour(255, 255, 255))
             btn.SetFont(inter_font)
@@ -98,7 +98,7 @@ class MyFrame1(wx.Frame):
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.pdf_delete)
         self.btn_add.Bind(wx.EVT_BUTTON, self.pdf_add)
         self.btn_load.Bind(wx.EVT_BUTTON, self.load_build)
-        self.btn_download.Bind(wx.EVT_BUTTON, self.download_build)
+        self.btn_refresh.Bind(wx.EVT_BUTTON, self.pdf_fetch)
         self.text_search.Bind(wx.EVT_TEXT_ENTER, self.query_search)
         self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
         self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
@@ -110,7 +110,7 @@ class MyFrame1(wx.Frame):
     def pdf_delete(self, event): event.Skip()
     def pdf_add(self, event): event.Skip()
     def load_build(self, event): event.Skip()
-    def download_build(self, event): event.Skip()
+    def pdf_fetch(self, event): event.Skip()
     def query_search(self, event): event.Skip()
     def show_help(self, event): event.Skip()
     def open_settings(self, event): event.Skip()
