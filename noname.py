@@ -96,6 +96,7 @@ class MyFrame1(wx.Frame):
 
         # Bind Events
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.pdf_delete)
+        self.dvcBuild.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.delete_build)
         self.btn_add.Bind(wx.EVT_BUTTON, self.pdf_add)
         self.btn_load.Bind(wx.EVT_BUTTON, self.load_build)
         self.btn_refresh.Bind(wx.EVT_BUTTON, self.pdf_fetch)
@@ -108,6 +109,7 @@ class MyFrame1(wx.Frame):
         pass
 
     def pdf_delete(self, event): event.Skip()
+    def delete_build(self, event): event.Skip()
     def pdf_add(self, event): event.Skip()
     def load_build(self, event): event.Skip()
     def pdf_fetch(self, event): event.Skip()
