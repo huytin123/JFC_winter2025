@@ -8,38 +8,35 @@ import chromadb
 class MyFrame(MyFrame1):
     def __init__(self):
         super().__init__(None)
-        self.build1 = None
-        self.dvcBuild.AppendItem(["Build 1", "None", "Delete"])
-        self.build2 = None
-        self.dvcBuild.AppendItem(["Build 2", "None", "Delete"])
+        self.build = []
+        self.collection = []
         self.load_build(None)
         self.num = 3
         
     @override
     def pdf_add( self, event ):
-        if self.build1 == None and self.build2 == None:
+        if len(self.build) == 0:
             self.tc.write("Please Load a Build Before Adding PDFs\n")
             return
-
         with wx.FileDialog(self, "Open PDF file", wildcard="PDF files (*.pdf)|*.pdf",
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
 
-            if self.build1 != None and self.build2 != None:
-                dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
+            if len(self.build) > 1:
+                choice = []
+                for i in range(len(self.build)):
+                    choice.append("Build " + str(i + 1))
+                    
+                dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", choice)
                 if dlg.ShowModal() == wx.ID_CANCEL:
                     return
 
-                if dlg.GetSelection == 0:
-                    collection = self.collection1
-                else:
-                    collection = self.collection2
-            elif self.build1 != None:
-                collection = self.collection1
+                
+                collection = self.collection[dlg.GetSelection()]
             else:
-                collection = self.collection2
+                collection = self.collection[0]
 
             self.start_loading()
             
@@ -85,17 +82,11 @@ class MyFrame(MyFrame1):
         self.end_loading()
 
     def delete_item( self, name ):
-        if self.build1 != None:
-            data = self.collection1.get(include=["metadatas"])
+        for i in range(len(self.build)):
+            data = self.collection[i].get(include=["metadatas"])
             delete_id = self.find_data(data, name)
             if len(delete_id) > 0:
-                self.collection1.delete(delete_id)
-            
-        if self.build2 != None:
-            data = self.collection2.get(include=["metadatas"])
-            delete_id = self.find_data(data, name)
-            if len(delete_id) > 0:
-                self.collection2.delete(delete_id)
+                self.collection[i].delete(delete_id)
 
     def find_data( self, data, name ):
         delete_id = []
@@ -110,16 +101,11 @@ class MyFrame(MyFrame1):
 
     @override
     def pdf_fetch( self, event ):
-        if self.build1 == None and self.build2 == None:
-            self.tc.write("Please Load a Build\n")
-            return
-
         self.start_loading()
+        self.tc.write("Refreshing...\n")
         names = []
-        if self.build1 != None:
-            names.extend(self.refresh_meta(self.collection1.get(include=["metadatas"])["metadatas"]))
-        if self.build2 != None:
-            names.extend(self.refresh_meta(self.collection2.get(include=["metadatas"])["metadatas"]))
+        for i in range(len(self.build)):
+            names.extend(self.refresh_meta(self.collection[i].get(include=["metadatas"])["metadatas"]))
 
         current = []
         count = self.dvc.GetItemCount()
@@ -155,16 +141,14 @@ class MyFrame(MyFrame1):
         
     @override
     def query_search( self, event ):
-        if self.build1 == None and self.build2 == None:
+        if len(self.build) == 0:
             self.tc.write("Please Load a Build Before Searching\n")
             return
         
         text = self.text_search.GetValue()
         self.tc.write("Searched: " + text + "\n\n")
-        if self.build1 != None:
-            self.query_collection(text, self.num, self.collection1)
-        if self.build2 != None:
-            self.query_collection(text, self.num, self.collection2)
+        for i in range(len(self.build)):
+            self.query_collection(text, self.num, self.collection[i])
 
     def query_collection( self, text, n, collection):
         self.start_loading()
@@ -188,11 +172,6 @@ class MyFrame(MyFrame1):
 
     @override
     def load_build( self, event ):
-        if self.build1 != None and self.build2 != None:
-            self.tc.write("Maximum Build Files Loaded\n")
-            return
-            
-        
         with wx.DirDialog (self, "Select Directory to Create or Load Build", "./",
                     wx.DD_DEFAULT_STYLE) as folder:
             
@@ -200,7 +179,7 @@ class MyFrame(MyFrame1):
                 return
             
             pathname = folder.GetPath()
-            if pathname == self.build1 or pathname == self.build2:
+            if pathname in self.build:
                 self.tc.write("Build Already Loaded\n")
                 return
 
@@ -216,14 +195,10 @@ class MyFrame(MyFrame1):
                 pass
             '''
 
-            if self.build1 == None:
-                self.build1 = pathname
-                self.collection1 = chroma_client.get_or_create_collection(name="my_collection")
-                self.dvcBuild.SetTextValue(pathname, 0, 1)
-            else:
-                self.build2 = pathname
-                self.collection2 = chroma_client.get_or_create_collection(name="my_collection")
-                self.dvcBuild.SetTextValue(pathname, 1, 1)
+
+            self.build.append(pathname)
+            self.collection.append(chroma_client.get_or_create_collection(name="my_collection"))
+            self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
             self.tc.write("Loaded or Created Build: " + str(pathname) + "\n")
             self.end_loading()
@@ -234,14 +209,14 @@ class MyFrame(MyFrame1):
     def delete_build( self, event ):
         row = self.dvcBuild.ItemToRow(event.GetItem())
         name = self.dvcBuild.GetTextValue(row, 1)
-        if name != "None":
-            self.dvcBuild.SetTextValue("None", row, 1)
-            if row == 0:
-                self.build1 = None
-            else:
-                self.build2 = None
-                
-            self.tc.write("Unloaded " + self.dvcBuild.GetTextValue(row, 0) + ": " + str(name) + "\n")
+        build_num = self.dvcBuild.GetTextValue(row, 0)
+        if self.dvcBuild.GetTextValue(row, 2) == "Delete":
+            self.dvcBuild.DeleteItem(row)
+
+            self.build.pop(row)
+            self.collection.pop(row)
+
+            self.tc.write("Unloaded " + build_num + ": " + str(name) + "\n")
             self.pdf_fetch(None)
 
     def open_settings( self, event ):
