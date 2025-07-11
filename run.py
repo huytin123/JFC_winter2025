@@ -47,8 +47,7 @@ class MyFrame(MyFrame1):
             processed = 0
             for pathname in pathnames:
                 name = os.path.basename(pathname)
-                docs, ids = extract_text_chunks(pathname)
-                metas = [{"Name": name}] * len(ids)
+                docs, ids, metas = extract_text_chunks(pathname)
                 if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
                     collection.add(
                         documents=docs,
@@ -173,15 +172,17 @@ class MyFrame(MyFrame1):
         self.tc.write("Finished Query\n")
         self.end_loading()
         for idx in range(len(data["ids"][0])):
-            current_id = data['ids'][0][idx]
             filename = data['metadatas'][0][idx]['Name']
+            page = data['metadatas'][0][idx]['Page']
+            para = data['metadatas'][0][idx]['Paragraph']
             content = data['documents'][0][idx]
 
             self.tc.write("+" * 16 + "\n")
             self.tc.write("Top #" + str(idx+1) + "\n")
             self.tc.write("+" * 16 + "\n")
-            self.tc.write(str(filename) + "\n")
-            self.tc.write(str(current_id) + "\n")
+            self.tc.write("File: " + str(filename) + "\n")
+            self.tc.write("Page: " + str(page) + "\n")
+            self.tc.write("Paragraph: " + str(para) + "\n")
             self.tc.write("+" * 16 + "\n")
             self.tc.write(str(content) + "\n\n")
 
@@ -253,8 +254,9 @@ class MyFrame(MyFrame1):
         self.num = result
 
     def show_help( self, event ):
+        self.tc.write("Opening User Manual: User Manual.pdf\n")
         try: 
-            os.startfile(".\\User Manual")
+            os.startfile(".\\User Manual.pdf")
         except:
             self.tc.write("Can't Open or Find User Manual\n")
 
@@ -270,6 +272,7 @@ class MyFrame(MyFrame1):
 
 def extract_text_chunks(pdf_path):
     chunk_list = []
+    id_list = []
     meta_list = []
     with fitz.open(pdf_path) as doc:
         for page_num, page in enumerate(doc):
@@ -280,11 +283,16 @@ def extract_text_chunks(pdf_path):
                 paragraph = paragraph.strip()
                 if paragraph:
                     chunk_list.append(paragraph)
-                    meta_list.append(
+                    id_list.append(
                         os.path.basename(pdf_path) +str( page_num + 1)+ str(para_count)
                     )
+                    meta_list.append({
+                        "Name": os.path.basename(pdf_path),
+                        "Page": page_num + 1,
+                        "Paragraph": para_count
+                    })
                     
-    return chunk_list, meta_list
+    return chunk_list, id_list, meta_list
 
 if __name__ == '__main__':
     app = wx.App(False)
