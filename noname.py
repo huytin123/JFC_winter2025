@@ -36,11 +36,12 @@ class MyFrame1(wx.Frame):
         self.c5 = self.dvcBuild.AppendTextColumn("✖", wx.dataview.DATAVIEW_CELL_INERT, 40, wx.ALIGN_CENTER, 0)
         sidebarBox.Add(self.dvcBuild, 1, wx.ALL, 10)
 
-        self.btn_add = wx.Button(sidebarPanel, wx.ID_ANY, "➕ Add", wx.DefaultPosition, wx.Size(-1, 40), 0)
+        self.btn_add_pdf = wx.Button(sidebarPanel, wx.ID_ANY, "➕ Add PDF", wx.DefaultPosition, wx.Size(-1, 40), 0)
+        self.btn_add_folder = wx.Button(sidebarPanel, wx.ID_ANY, "➕ Add Folder", wx.DefaultPosition, wx.Size(-1, 40), 0)
         self.btn_load = wx.Button(sidebarPanel, wx.ID_ANY, "🔄 Load Build", wx.DefaultPosition, wx.Size(-1, 40), 0)
         self.btn_refresh = wx.Button(sidebarPanel, wx.ID_ANY, "⬇ Refresh", wx.DefaultPosition, wx.Size(-1, 40), 0)
 
-        for btn in [self.btn_add, self.btn_load, self.btn_refresh]:
+        for btn in [self.btn_add_pdf, self.btn_add_folder,self.btn_load, self.btn_refresh,]:
             btn.SetBackgroundColour("#8E6E6E")
             btn.SetForegroundColour(wx.Colour(255, 255, 255))
             btn.SetFont(inter_font)
@@ -97,7 +98,8 @@ class MyFrame1(wx.Frame):
         # Bind Events
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.pdf_delete)
         self.dvcBuild.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.delete_build)
-        self.btn_add.Bind(wx.EVT_BUTTON, self.pdf_add)
+        self.btn_add_pdf.Bind(wx.EVT_BUTTON, self.pdf_add)
+        self.btn_add_folder.Bind(wx.EVT_BUTTON, self.pdf_add)
         self.btn_load.Bind(wx.EVT_BUTTON, self.load_build)
         self.btn_refresh.Bind(wx.EVT_BUTTON, self.pdf_fetch)
         self.text_search.Bind(wx.EVT_TEXT_ENTER, self.query_search)
