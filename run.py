@@ -15,19 +15,15 @@ class MyFrame(MyFrame1):
 
     
     def get_collection(self):
-        if self.build1 != None and self.build2 != None:
+        collection = None
+        if len(self.build) > 1:
             dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
 
-            if dlg.GetSelection == 0:
-                collection = self.collection1
-            else:
-                collection = self.collection2
-        elif self.build1 != None:
-            collection = self.collection1
+            collection = self.collection[dlg.GetSelection()]
         else:
-            collection = self.collection2
+            collection = self.collection[0]
 
         return collection
 
@@ -63,37 +59,12 @@ class MyFrame(MyFrame1):
             self.start_loading()
             
             pathnames = fileDialog.GetPaths()
+            
         return pathnames
-       
-#     @override
-#     def pdf_add( self, event ):
-#         if len(self.build) == 0:
-#             self.tc.write("Please Load a Build Before Adding PDFs\n")
-#             return
-#         with wx.FileDialog(self, "Open PDF file", wildcard="PDF files (*.pdf)|*.pdf",
-#                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
-
-#             if fileDialog.ShowModal() == wx.ID_CANCEL:
-#                 return
-
-#             if len(self.build) > 1:
-#                 choice = []
-#                 for i in range(len(self.build)):
-#                     choice.append("Build " + str(i + 1))
-                    
-#                 dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", choice)
-#                 if dlg.ShowModal() == wx.ID_CANCEL:
-#                     return
-
-                
-#                 collection = self.collection[dlg.GetSelection()]
-#             else:
-#                 collection = self.collection[0]
 
     @override
     def pdf_add( self, event ):
-
-        if self.build1 == None and self.build2 == None:
+        if len(self.build) == 0:
             self.tc.write("Please Load a Build Before Adding PDFs\n")
             return
         
@@ -104,14 +75,17 @@ class MyFrame(MyFrame1):
         if label == "➕ Add PDF": 
             pathnames = self.add_files()
         else:
-            pathnames =self.add_folders()
+            pathnames = self.add_folders()
+
         if pathnames == None:
             return 
         
-        collection =self.collection1 # change
-        collection = self.get_collection() #change
+        collection = self.get_collection()
+        print(self.collection[0])
         if collection == None:
             return 
+
+        print(pathnames)
         
         processed = 0
         for pathname in pathnames:
