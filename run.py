@@ -12,55 +12,127 @@ class MyFrame(MyFrame1):
         self.collection = []
         self.load_build(None)
         self.num = 3
-        
-    @override
-    def pdf_add( self, event ):
-        if len(self.build) == 0:
-            self.tc.write("Please Load a Build Before Adding PDFs\n")
-            return
-        with wx.FileDialog(self, "Open PDF file", wildcard="PDF files (*.pdf)|*.pdf",
+
+    
+    def get_collection(self):
+        if self.build1 != None and self.build2 != None:
+            dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
+            if dlg.ShowModal() == wx.ID_CANCEL:
+                return
+
+            if dlg.GetSelection == 0:
+                collection = self.collection1
+            else:
+                collection = self.collection2
+        elif self.build1 != None:
+            collection = self.collection1
+        else:
+            collection = self.collection2
+
+        return collection
+
+    def add_folders (self):
+        pathnames = []
+        with wx.DirDialog(self, "Select a folder",
+                       style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as folderDialog:
+
+            if folderDialog.ShowModal() == wx.ID_CANCEL:
+                return
+
+
+            self.start_loading()
+            folder_path = folderDialog.GetPath()
+
+            #collect all files qithin the directory
+            for root, dirs, files in os.walk(folder_path):
+                for filename in files:
+                    if filename.lower().endswith('.pdf'):
+                        full_path = os.path.join(root, filename)
+                        pathnames.append(full_path)
+
+        return pathnames
+    
+    def add_files (self):
+        pathnames = []
+        with wx.FileDialog(self, "Open PDF Files", wildcard="PDF files (*.pdf)|*.pdf",
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
-
-            if len(self.build) > 1:
-                choice = []
-                for i in range(len(self.build)):
-                    choice.append("Build " + str(i + 1))
-                    
-                dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", choice)
-                if dlg.ShowModal() == wx.ID_CANCEL:
-                    return
-
-                
-                collection = self.collection[dlg.GetSelection()]
-            else:
-                collection = self.collection[0]
-
+            
             self.start_loading()
             
             pathnames = fileDialog.GetPaths()
-            processed = 0
-            for pathname in pathnames:
-                name = os.path.basename(pathname)
-                docs, ids, metas = extract_text_chunks(pathname)
-                if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-                    collection.add(
-                        documents=docs,
-                        ids=ids,
-                        metadatas=metas,
-                    )
-                
-                    self.dvc.AppendItem([name, "Delete"])
-                
-                    self.tc.write("Added: " + str(name) + "\n")
-                    processed += 1
-                    self.tc.write("Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
-                else:
-                    self.tc.write("Document " + name + " Already in Database\n")
+        return pathnames
+       
+#     @override
+#     def pdf_add( self, event ):
+#         if len(self.build) == 0:
+#             self.tc.write("Please Load a Build Before Adding PDFs\n")
+#             return
+#         with wx.FileDialog(self, "Open PDF file", wildcard="PDF files (*.pdf)|*.pdf",
+#                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
 
-            self.end_loading()
+#             if fileDialog.ShowModal() == wx.ID_CANCEL:
+#                 return
+
+#             if len(self.build) > 1:
+#                 choice = []
+#                 for i in range(len(self.build)):
+#                     choice.append("Build " + str(i + 1))
+                    
+#                 dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", choice)
+#                 if dlg.ShowModal() == wx.ID_CANCEL:
+#                     return
+
+                
+#                 collection = self.collection[dlg.GetSelection()]
+#             else:
+#                 collection = self.collection[0]
+
+    @override
+    def pdf_add( self, event ):
+
+        if self.build1 == None and self.build2 == None:
+            self.tc.write("Please Load a Build Before Adding PDFs\n")
+            return
+        
+        button = event.GetEventObject()
+        label = button.GetLabel() 
+
+        pathnames=[]
+        if label == "➕ Add PDF": 
+            pathnames = self.add_files()
+        else:
+            pathnames =self.add_folders()
+        if pathnames == None:
+            return 
+        
+        collection =self.collection1 # change
+        collection = self.get_collection() #change
+        if collection == None:
+            return 
+        
+        processed = 0
+        for pathname in pathnames:
+            name = os.path.basename(pathname)
+            docs, ids, metas = extract_text_chunks(pathname)
+            if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
+                collection.add(
+                    documents=docs,
+                    ids=ids,
+                    metadatas=metas,
+                )
+            
+                self.dvc.AppendItem([name, "Delete"])
+            
+                self.tc.write("Added: " + str(name) + "\n")
+                processed += 1
+                self.tc.write("Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
+            else:
+                self.tc.write("Document " + name + " Already in Database\n")
+
+        self.end_loading()
 
     def isSubset(self, a, b):
         for i in range(len(b)):
