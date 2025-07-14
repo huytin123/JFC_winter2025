@@ -4,6 +4,7 @@ from typing_extensions  import override
 import fitz
 import os
 import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 class MyFrame(MyFrame1):
     def __init__(self):
@@ -234,10 +235,17 @@ class MyFrame(MyFrame1):
             except Exception as e:
                 pass
             '''
-
-
+            model = None
+            try:
+                model = SentenceTransformerEmbeddingFunction(model_name="sentence-transformers/multi-qa-MiniLM-L6-cos-v1")
+            except Exception as e:
+                model = SentenceTransformerEmbeddingFunction(model_name="sentence-transformers/multi-qa-MiniLM-L6-cos-v1", local_files_only=True)
+            
             self.build.append(pathname)
-            self.collection.append(chroma_client.get_or_create_collection(name="my_collection"))
+            self.collection.append(chroma_client.get_or_create_collection(
+                name="my_collection",
+                embedding_function=model
+            ))
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
             self.tc.write("Loaded or Created Build: " + str(pathname) + "\n")
