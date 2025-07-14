@@ -34,9 +34,7 @@ class MyFrame(MyFrame1):
 
             if folderDialog.ShowModal() == wx.ID_CANCEL:
                 return
-
-
-            self.start_loading()
+            
             folder_path = folderDialog.GetPath()
 
             #collect all files qithin the directory
@@ -55,8 +53,6 @@ class MyFrame(MyFrame1):
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
-            
-            self.start_loading()
             
             pathnames = fileDialog.GetPaths()
             
@@ -78,15 +74,13 @@ class MyFrame(MyFrame1):
             pathnames = self.add_folders()
 
         if pathnames == None:
-            return 
+            return
         
+        self.start_loading()
         collection = self.get_collection()
-        print(self.collection[0])
         if collection == None:
             return 
 
-        print(pathnames)
-        
         processed = 0
         for pathname in pathnames:
             name = os.path.basename(pathname)
