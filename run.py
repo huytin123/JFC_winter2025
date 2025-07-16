@@ -463,7 +463,7 @@ class MyFrame(MyFrame1):
         attr.SetLeftIndent(75, 0)
         attr.SetRightIndent(75)
         self.tc.BeginStyle(attr)
-        self.tc.WriteText(" Complete\n")
+        self.tc.WriteText("Complete\n")
         self.tc.EndStyle()
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
