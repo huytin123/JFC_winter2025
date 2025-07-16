@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
+import threading
+from sentence_transformers import CrossEncoder
 import wx
 from noname import MyFrame1
 from typing_extensions  import override
@@ -5,7 +8,6 @@ import fitz
 import os
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-import threading
 
 class MyFrame(MyFrame1):
     def __init__(self):
@@ -14,23 +16,21 @@ class MyFrame(MyFrame1):
         self.collection = []
         self.load_build(None)
         self.num = 3
-        self.thread_list=[]
+        self.to_be_processed=0
+        self.thread_list =[]
+        self.executor = None
 
     
     def get_collection(self):
-        if self.build1 != None and self.build2 != None:
+        collection = None
+        if len(self.build) > 1:
             dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
 
-            if dlg.GetSelection == 0:
-                collection = self.collection1
-            else:
-                collection = self.collection2
-        elif self.build1 != None:
-            collection = self.collection1
+            collection = self.collection[dlg.GetSelection()]
         else:
-            collection = self.collection2
+            collection = self.collection[0]
 
         return collection
 
@@ -41,9 +41,7 @@ class MyFrame(MyFrame1):
 
             if folderDialog.ShowModal() == wx.ID_CANCEL:
                 return
-
-
-            self.start_loading()
+            
             folder_path = folderDialog.GetPath()
 
             #collect all files qithin the directory
@@ -63,61 +61,48 @@ class MyFrame(MyFrame1):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             
-            self.start_loading()
-            
             pathnames = fileDialog.GetPaths()
+            
         return pathnames
-       
-#     @override
-#     def pdf_add( self, event ):
-#         if len(self.build) == 0:
-#             self.tc.write("Please Load a Build Before Adding PDFs\n")
-#             return
-#         with wx.FileDialog(self, "Open PDF file", wildcard="PDF files (*.pdf)|*.pdf",
-#                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
 
-#             if fileDialog.ShowModal() == wx.ID_CANCEL:
-#                 return
+    def create_executors (self, pathnames, collection):
+        print("start executor")
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            self.executor = executor  
 
-#             if len(self.build) > 1:
-#                 choice = []
-#                 for i in range(len(self.build)):
-#                     choice.append("Build " + str(i + 1))
-                    
-#                 dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", choice)
-#                 if dlg.ShowModal() == wx.ID_CANCEL:
-#                     return
+            for pathname in pathnames:
+                print(pathname)
+                executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
+            wx.CallAfter(self.end_loading)
 
-                
-#                 collection = self.collection[dlg.GetSelection()]
-#             else:
-#                 collection = self.collection[0]
-
-    def put_pdf_collections(self, pathnames, collection): #in thread
-        processed = 0
-        for pathname in pathnames:
-            name = os.path.basename(pathname)
-            docs, ids, metas = extract_text_chunks(pathname)
-            if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-                collection.add(
-                    documents=docs,
-                    ids=ids,
-                    metadatas=metas,
-                )
-            
-                wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
-            
-                wx.CallAfter(self.tc.write, "Added: " + str(name) + "\n")
-                processed += 1
-                wx.CallAfter(self.tc.write,"Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
-            else:
-                wx.CallAfter(self.tc.write,"Document " + name + " Already in Database\n")
+    def put_pdf_collections(self, pathname, collection, pathnum): #in thread
+        print("start inpuitng things")
+        name = os.path.basename(pathname)
+        docs, ids, metas = extract_text_chunks(pathname)
+        if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
+            collection.add(
+                documents=docs,
+                ids=ids,
+                metadatas=metas,
+            )
+        
+            wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
+        
+            wx.CallAfter(self.tc.write, "Added: " + str(name) + "\n")
+            self.to_be_processed -= 1
+            wx.CallAfter(self.tc.write,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
+        else:
+            self.to_be_processed -= 1
+            wx.CallAfter(self.tc.write,"Document " + name + " Already in Database\n")
         wx.CallAfter(self.end_loading)
 
     @override
     def pdf_add( self, event ):
 
-        if self.build1 == None and self.build2 == None:
+        if self.to_be_processed!=0:
+            return
+        
+        if len(self.build) == 0:
             self.tc.write("Please Load a Build Before Adding PDFs\n")
             return
         
@@ -128,54 +113,23 @@ class MyFrame(MyFrame1):
         if label == "➕ Add PDF": 
             pathnames = self.add_files()
         else:
-            pathnames =self.add_folders()
+            pathnames = self.add_folders()
+
         if pathnames == None:
-            return 
-
-        collection =self.collection1 # change
-        collection = self.get_collection() #change
-        if collection == None:
-            return 
+            return
         
-        processed = 0
-        for pathname in pathnames:
-            name = os.path.basename(pathname)
-            docs, ids, metas = extract_text_chunks(pathname)
-            if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-                collection.add(
-                    documents=docs,
-                    ids=ids,
-                    metadatas=metas,
-                )
-            
-                self.dvc.AppendItem([name, "Delete"])
-            
-                self.tc.write("Added: " + str(name) + "\n")
-                processed += 1
-                self.tc.write("Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
-            else:
-                self.tc.write("Document " + name + " Already in Database\n")
-
-        self.end_loading()
-
-
+        self.start_loading()
         collection = self.get_collection()
         if collection == None:
             return 
-        
+
+        print(pathnames)
+        self.to_be_processed = len(pathnames)
         self.start_loading()
-        thread = threading.Thread(target=self.put_pdf_collections, args=(pathnames, collection))
-        thread.daemon = True
+        thread = threading.Thread(target=self.create_executors, args=(pathnames, collection))
+        #thread.daemon= True
         self.thread_list.append (thread)
         thread.start()
-
-    @override
-    def close_threads(self, event):
-        # for t in self.thread_list:
-        #     if t.is_alive():
-        #         t.join()
-        self.Destroy()
-
 
     def isSubset(self, a, b):
         for i in range(len(b)):
@@ -183,6 +137,17 @@ class MyFrame(MyFrame1):
                 return False
 
         return True
+    
+    @override
+    def close_threads(self, event):
+
+        if self.executor:
+            self.executor.shutdown(wait=True)
+
+        for t in self.thread_list:
+            if t.is_alive():
+                t.join()
+        self.Destroy()
 
     @override
     def pdf_delete( self, event ):
@@ -265,23 +230,51 @@ class MyFrame(MyFrame1):
         for i in range(len(self.build)):
             self.query_collection(text, self.num, self.collection[i])
 
+    def rerank(self, data,question):
+        try:
+            cross_encoder = CrossEncoder(model_name_or_path="sentence-transformers/multi-qa-MiniLM-L6-cos-v1")
+        except Exception as e:
+            cross_encoder = CrossEncoder(model_name_or_path="sentence-transformers/multi-qa-MiniLM-L6-cos-v1", local_files_only=True)
+        
+        for i in data:
+            retrieved_docs = data['documents'][0]
+            retrieved_metadata = data['metadatas'][0]
+            pairs = [[question, doc] for doc in retrieved_docs]
+            scores = cross_encoder.predict(pairs)
+            sorted_entries = sorted(
+                zip(scores, retrieved_docs, retrieved_metadata),
+                key=lambda x: x[0],
+                reverse=True
+            )
+        return sorted_entries
+
+
     def query_collection( self, text, n, collection):
         self.start_loading()
         data = collection.query(query_texts=text, n_results=n)
         self.tc.write("Finished Query\n")
         self.end_loading()
-        for idx in range(len(data["ids"][0])):
-            filename = data['metadatas'][0][idx]['Name']
-            page = data['metadatas'][0][idx]['Page']
-            para = data['metadatas'][0][idx]['Paragraph']
-            content = data['documents'][0][idx]
+        data = self.rerank( data, text) #score, doc, metadata
+        
+
+        for i, (score, doc, metadata) in enumerate(data):
+            # filename = data['metadatas'][0][idx]['Name']
+            # page = data['metadatas'][0][idx]['Page']
+            # para = data['metadatas'][0][idx]['Paragraph']
+            # content = data['documents'][0][idx]
+
+            filename = metadata.get("Name", "")
+            page = metadata.get("Page", "")
+            para = metadata.get("Paragraph", "")
+            content = doc
 
             self.tc.write("+" * 16 + "\n")
-            self.tc.write("Top #" + str(idx+1) + "\n")
+            self.tc.write("Top #" + str(i+1) + "\n")
             self.tc.write("+" * 16 + "\n")
             self.tc.write("File: " + str(filename) + "\n")
             self.tc.write("Page: " + str(page) + "\n")
             self.tc.write("Paragraph: " + str(para) + "\n")
+            self.tc.write("Score: " + str(score) + "\n")
             self.tc.write("+" * 16 + "\n")
             self.tc.write(str(content) + "\n\n")
 
@@ -309,10 +302,17 @@ class MyFrame(MyFrame1):
             except Exception as e:
                 pass
             '''
-
-
+            model = None
+            try:
+                model = SentenceTransformerEmbeddingFunction(model_name="sentence-transformers/multi-qa-MiniLM-L6-cos-v1") #make this part of the config file
+            except Exception as e:
+                model = SentenceTransformerEmbeddingFunction(model_name="sentence-transformers/multi-qa-MiniLM-L6-cos-v1", local_files_only=True)
+            
             self.build.append(pathname)
-            self.collection.append(chroma_client.get_or_create_collection(name="my_collection"))
+            self.collection.append(chroma_client.get_or_create_collection(
+                name="my_collection",
+                embedding_function=model
+            ))
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
             self.tc.write("Loaded or Created Build: " + str(pathname) + "\n")
@@ -361,7 +361,6 @@ class MyFrame(MyFrame1):
         self.tc.write("+" * 16 + "\n\n")
 
 def extract_text_chunks(pdf_path):
-    
     chunk_list = []
     id_list = []
     meta_list = []
@@ -384,6 +383,7 @@ def extract_text_chunks(pdf_path):
                     })
                     
     return chunk_list, id_list, meta_list
+
 
 if __name__ == '__main__':
     app = wx.App(False)
