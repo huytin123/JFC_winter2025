@@ -4,6 +4,8 @@ from typing_extensions  import override
 import fitz
 import os
 import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+import threading
 
 class MyFrame(MyFrame1):
     def __init__(self):
@@ -14,6 +16,8 @@ class MyFrame(MyFrame1):
         self.dvcBuild.AppendItem(["Build 2", "None", "Delete"])
         self.load_build(None)
         self.num = 3
+        self.thread_list=[]
+
     
     def get_collection(self):
         if self.build1 != None and self.build2 != None:
@@ -65,6 +69,27 @@ class MyFrame(MyFrame1):
             pathnames = fileDialog.GetPaths()
         return pathnames
 
+    def put_pdf_collections(self, pathnames, collection): #in thread
+        processed = 0
+        for pathname in pathnames:
+            name = os.path.basename(pathname)
+            docs, ids, metas = extract_text_chunks(pathname)
+            if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
+                collection.add(
+                    documents=docs,
+                    ids=ids,
+                    metadatas=metas,
+                )
+            
+                wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
+            
+                wx.CallAfter(self.tc.write, "Added: " + str(name) + "\n")
+                processed += 1
+                wx.CallAfter(self.tc.write,"Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
+            else:
+                wx.CallAfter(self.tc.write,"Document " + name + " Already in Database\n")
+        wx.CallAfter(self.end_loading)
+
     @override
     def pdf_add( self, event ):
 
@@ -82,7 +107,7 @@ class MyFrame(MyFrame1):
             pathnames =self.add_folders()
         if pathnames == None:
             return 
-        
+
         collection =self.collection1 # change
         collection = self.get_collection() #change
         if collection == None:
@@ -108,6 +133,25 @@ class MyFrame(MyFrame1):
                 self.tc.write("Document " + name + " Already in Database\n")
 
         self.end_loading()
+
+
+        collection = self.get_collection()
+        if collection == None:
+            return 
+        
+        self.start_loading()
+        thread = threading.Thread(target=self.put_pdf_collections, args=(pathnames, collection))
+        thread.daemon = True
+        self.thread_list.append (thread)
+        thread.start()
+
+    @override
+    def close_threads(self, event):
+        # for t in self.thread_list:
+        #     if t.is_alive():
+        #         t.join()
+        self.Destroy()
+
 
     def isSubset(self, a, b):
         for i in range(len(b)):
@@ -315,6 +359,7 @@ class MyFrame(MyFrame1):
         self.tc.write("+" * 16 + "\n\n")
 
 def extract_text_chunks(pdf_path):
+    
     chunk_list = []
     id_list = []
     meta_list = []

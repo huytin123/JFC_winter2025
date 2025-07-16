@@ -106,6 +106,7 @@ class MyFrame1(wx.Frame):
         self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
         self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
         self.btn_settings.Bind(wx.EVT_BUTTON, self.open_settings)
+        self.Bind(wx.EVT_CLOSE, self.close_threads)
 
     def __del__(self):
         pass
@@ -118,4 +119,5 @@ class MyFrame1(wx.Frame):
     def query_search(self, event): event.Skip()
     def show_help(self, event): event.Skip()
     def open_settings(self, event): event.Skip()
+    def close_threads(self, event): event.Skip()
 
