@@ -1,5 +1,5 @@
 import wx
-from noname2 import MyFrame1
+from noname import MyFrame1
 from typing_extensions import override
 import fitz
 import os
