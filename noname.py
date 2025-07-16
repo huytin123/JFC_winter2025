@@ -1,6 +1,7 @@
 import wx
 import wx.xrc
 import wx.dataview
+import wx.richtext  # Added for RichTextCtrl
 
 myEVT_CUSTOM_BUTTON = wx.NewEventType()
 EVT_CUSTOM_BUTTON = wx.PyEventBinder(myEVT_CUSTOM_BUTTON, 1)
@@ -38,9 +39,9 @@ class CustomButton(wx.Panel):
         gc.SetBrush(wx.Brush(self.bg_color))
         gc.DrawPath(path)
 
-        # Add subtle 3D effect (shadow)
-        gc.SetBrush(wx.Brush(wx.Colour(200, 220, 240, 100)))  # Light shadow
-        gc.DrawRectangle(2, 2, width - 4, height - 4)
+        # # Add subtle 3D effect (shadow)
+        # gc.SetBrush(wx.Brush(wx.Colour(200, 220, 240, 100)))  # Light shadow
+        # gc.DrawRectangle(2, 2, width - 4, height - 4)
 
         # Draw text
         sfpro_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "SF Pro Display")
@@ -91,12 +92,13 @@ class MyFrame1(wx.Frame):
         sidebarBox.Add(self.dvcBuild, 1, wx.ALL, 10)
 
         # Button definitions with custom buttons
-        self.btn_add = CustomButton(sidebarPanel, "Add", wx.Size(150, 35))
-        self.btn_load = CustomButton(sidebarPanel, "New/Load Build", wx.Size(150, 35))
+        self.btn_add = CustomButton(sidebarPanel, "Add PDF", wx.Size(150, 35))
+        self.btn_add_folder = CustomButton(sidebarPanel, "Add Folder", wx.Size(150, 35))
+        self.btn_load = CustomButton(sidebarPanel, "Load Build", wx.Size(150, 35))
         self.btn_refresh = CustomButton(sidebarPanel, "Refresh", wx.Size(150, 35))
 
         # Ensure buttons are not in another sizer before adding
-        for btn in [self.btn_add, self.btn_load, self.btn_refresh]:
+        for btn in [self.btn_add, self.btn_add_folder, self.btn_load, self.btn_refresh]:
             btn.Reparent(sidebarPanel)  # Re-parent to ensure clean slate
             if btn.GetContainingSizer():
                 btn.GetContainingSizer().Detach(btn)  # Detach from any existing sizer
@@ -117,8 +119,7 @@ class MyFrame1(wx.Frame):
         heading.SetFont(heading_font)
         heading.SetForegroundColour("#04547C")  # Dark blue text
 
-        self.btn_help = CustomButton(heading_panel, "Help", wx.Size(60, 30), bg_color=wx.Colour("#574D7D"))
-        self.btn_help.SetForegroundColour(wx.Colour(255, 255, 255))  # White text for Help button
+        self.btn_help = CustomButton(heading_panel, "Help", wx.Size(60, 30), bg_color=wx.Colour("#684c6b"))
         self.btn_help.SetFont(sfpro_font)
 
         # Layout to align Help button to the right
@@ -130,10 +131,10 @@ class MyFrame1(wx.Frame):
 
         rightSizer.Add(heading_panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
-        self.tc = wx.TextCtrl(self, wx.ID_ANY, "", wx.DefaultPosition, wx.DefaultSize,
-                              wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_WORDWRAP)
+        # Replaced TextCtrl with RichTextCtrl
+        self.tc = wx.richtext.RichTextCtrl(self, wx.ID_ANY, "", wx.DefaultPosition, wx.DefaultSize,
+                                           wx.richtext.RE_MULTILINE | wx.richtext.RE_READONLY)
         self.tc.SetBackgroundColour("#FFFFFF")  # White main workspace
-        self.tc.SetForegroundColour("#2B2B2B")
         self.tc.SetFont(sfpro_font)
         rightSizer.Add(self.tc, 1, wx.ALL | wx.EXPAND, 10)
 
@@ -160,7 +161,6 @@ class MyFrame1(wx.Frame):
 
         # Search and Settings buttons
         self.btn_search = CustomButton(self, "Search", wx.Size(100, 30))
-        self.btn_search.SetFont(sfpro_font)
         self.btn_settings = CustomButton(self, "⚙", wx.Size(40, 30))
         self.btn_settings.SetFont(sfpro_font)
 
@@ -183,6 +183,7 @@ class MyFrame1(wx.Frame):
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.pdf_delete)
         self.dvcBuild.Bind(wx.dataview.EVT_DATAVIEW_ITEM_ACTIVATED, self.delete_build)
         self.Bind(EVT_CUSTOM_BUTTON, self.pdf_add, self.btn_add)
+        self.Bind(EVT_CUSTOM_BUTTON, self.pdf_add, self.btn_add_folder)
         self.Bind(EVT_CUSTOM_BUTTON, self.load_build, self.btn_load)
         self.Bind(EVT_CUSTOM_BUTTON, self.pdf_fetch, self.btn_refresh)
         self.text_search.Bind(wx.EVT_TEXT_ENTER, self.query_search)
