@@ -106,6 +106,8 @@ class MyFrame1(wx.Frame):
             btn.SetFont(sfpro_font)
             sidebarBox.Add(btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, border=2)  # Small border for spacing
 
+        sidebarBox.AddSpacer(10)  
+
         sidebarPanel.SetSizer(sidebarBox)
         mainSizer.Add(sidebarPanel, 0, wx.EXPAND, 5)
 
