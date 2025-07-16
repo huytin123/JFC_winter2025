@@ -21,7 +21,7 @@ class MyFrame(MyFrame1):
         
     @override
     def pdf_add(self, event):
-        if len(self.build) > 0:
+        if len(self.build) == 0:
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -34,25 +34,24 @@ class MyFrame(MyFrame1):
             self.tc.EndStyle()
             self.tc.ShowPosition(self.tc.GetLastPosition())
             return
-
-  return pathnames
       
         button = event.GetEventObject()
-        label = button.GetLabel() 
+        label = button.label 
 
         pathnames=[]
-        if label == "➕ Add PDF": 
+        if label == "Add PDF": 
             pathnames = self.add_files()
         else:
             pathnames = self.add_folders()
 
         if pathnames == None:
             return
-        
-        self.start_loading()
+
         collection = self.get_collection()
         if collection == None:
             return 
+        
+        self.start_loading()
 
         processed = 0
         for pathname in pathnames:
@@ -125,7 +124,7 @@ class MyFrame(MyFrame1):
             
             folder_path = folderDialog.GetPath()
 
-            #collect all files qithin the directory
+            # collect all files within the directory
             for root, dirs, files in os.walk(folder_path):
                 for filename in files:
                     if filename.lower().endswith('.pdf'):
@@ -143,6 +142,8 @@ class MyFrame(MyFrame1):
                 return
             
             pathnames = fileDialog.GetPaths()
+
+        return pathnames
 
     def isSubset(self, a, b):
         for i in range(len(b)):
@@ -172,17 +173,11 @@ class MyFrame(MyFrame1):
         self.end_loading()
 
     def delete_item(self, name):
-        if self.build1 != None:
-            data = self.collection1.get(include=["metadatas"])
+        for i in range(len(self.build)):
+            data = self.collection[i].get(include=["metadatas"])
             delete_id = self.find_data(data, name)
             if len(delete_id) > 0:
-                self.collection1.delete(delete_id)
-            
-        if self.build2 != None:
-            data = self.collection2.get(include=["metadatas"])
-            delete_id = self.find_data(data, name)
-            if len(delete_id) > 0:
-                self.collection2.delete(delete_id)
+                self.collection[i].delete(delete_id)
 
     def find_data(self, data, name):
         delete_id = []
@@ -195,26 +190,10 @@ class MyFrame(MyFrame1):
 
     @override
     def pdf_fetch(self, event):
-        if self.build1 == None and self.build2 == None:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Please Load a Build\n")
-            self.tc.EndStyle()
-            self.tc.ShowPosition(self.tc.GetLastPosition())
-            return
-
         self.start_loading()
         names = []
-        if self.build1 != None:
-            names.extend(self.refresh_meta(self.collection1.get(include=["metadatas"])["metadatas"]))
-        if self.build2 != None:
-            names.extend(self.refresh_meta(self.collection2.get(include=["metadatas"])["metadatas"]))
+        for i in range(len(self.build)):
+            names.extend(self.refresh_meta(self.collection[i].get(include=["metadatas"])["metadatas"]))
 
         current = []
         count = self.dvc.GetItemCount()
@@ -228,7 +207,9 @@ class MyFrame(MyFrame1):
                 for row in range(count):
                     if item == self.dvc.GetTextValue(row, 0):
                         delete_row = row
+                        
                 self.dvc.DeleteItem(delete_row)
+                
                 attr = wx.richtext.RichTextAttr()
                 attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
                 attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -243,6 +224,7 @@ class MyFrame(MyFrame1):
         for item in names:
             if item not in current:
                 self.dvc.AppendItem([item, "Delete"])
+                
                 attr = wx.richtext.RichTextAttr()
                 attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
                 attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -261,6 +243,7 @@ class MyFrame(MyFrame1):
         for m in meta:
             if m["Name"] not in names:
                 names.append(m["Name"])
+                
         attr = wx.richtext.RichTextAttr()
         attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
         attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -276,7 +259,7 @@ class MyFrame(MyFrame1):
         
     @override
     def query_search(self, event):
-        if self.build1 == None and self.build2 == None:
+        if len(self.build) == 0:
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -311,10 +294,8 @@ class MyFrame(MyFrame1):
         self.text_search.Clear()
         
         # Process query for each collection
-        if self.build1 != None:
-            self.query_collection(text, self.num, self.collection1)
-        if self.build2 != None:
-            self.query_collection(text, self.num, self.collection2)
+        for i in range(len(self.build)):
+            self.query_collection(text, self.num, self.collection[i])
         
         # Scroll to the bottom
         self.tc.ShowPosition(self.tc.GetLastPosition())
@@ -351,21 +332,7 @@ class MyFrame(MyFrame1):
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
     @override
-    def load_build(self, event):
-        if self.build1 != None and self.build2 != None:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Maximum Build Files Loaded\n")
-            self.tc.EndStyle()
-            self.tc.ShowPosition(self.tc.GetLastPosition())
-            return
-            
+    def load_build(self, event):       
         with wx.DirDialog(self, "Select Directory to Create or Load Build", "./",
                     wx.DD_DEFAULT_STYLE) as folder:
             
@@ -373,7 +340,7 @@ class MyFrame(MyFrame1):
                 return
             
             pathname = folder.GetPath()
-            if pathname == self.build1 or pathname == self.build2:
+            if pathname in self.build:
                 attr = wx.richtext.RichTextAttr()
                 attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
                 attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -429,12 +396,12 @@ class MyFrame(MyFrame1):
     def delete_build(self, event):
         row = self.dvcBuild.ItemToRow(event.GetItem())
         name = self.dvcBuild.GetTextValue(row, 1)
-        if name != "None":
-            self.dvcBuild.SetTextValue("None", row, 1)
-            if row == 0:
-                self.build1 = None
-            else:
-                self.build2 = None
+        build_num = self.dvcBuild.GetTextValue(row, 0)
+        if self.dvcBuild.GetTextValue(row, 2) == "Delete":
+            self.dvcBuild.DeleteItem(row)
+
+            self.build.pop(row)
+            self.collection.pop(row)
                 
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -502,20 +469,27 @@ class MyFrame(MyFrame1):
 
 def extract_text_chunks(pdf_path):
     chunk_list = []
+    id_list = []
     meta_list = []
     with fitz.open(pdf_path) as doc:
         for page_num, page in enumerate(doc):
             text = page.get_text()
-            para_count = 0
+            para_count =0
             for paragraph in text.split('\n\n'):
-                para_count = para_count + 1
+                para_count =para_count+1
                 paragraph = paragraph.strip()
                 if paragraph:
                     chunk_list.append(paragraph)
-                    meta_list.append(
-                        os.path.basename(pdf_path) + str(page_num + 1) + str(para_count)
+                    id_list.append(
+                        os.path.basename(pdf_path) +str( page_num + 1)+ str(para_count)
                     )
-    return chunk_list, meta_list
+                    meta_list.append({
+                        "Name": os.path.basename(pdf_path),
+                        "Page": page_num + 1,
+                        "Paragraph": para_count
+                    })
+                    
+    return chunk_list, id_list, meta_list
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
