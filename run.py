@@ -5,10 +5,13 @@ import fitz
 import os
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+import configparser
 
 class MyFrame(MyFrame1):
-    def __init__(self):
+    def __init__(self, collection_name, model_name):
         super().__init__(None)
+        self.collection_name = collection_name
+        self.model_name = model_name
         self.build = []
         self.collection = []
         self.load_build(None)
@@ -237,13 +240,13 @@ class MyFrame(MyFrame1):
             '''
             model = None
             try:
-                model = SentenceTransformerEmbeddingFunction(model_name="sentence-transformers/multi-qa-MiniLM-L6-cos-v1")
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
             except Exception as e:
-                model = SentenceTransformerEmbeddingFunction(model_name="sentence-transformers/multi-qa-MiniLM-L6-cos-v1", local_files_only=True)
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
             
             self.build.append(pathname)
             self.collection.append(chroma_client.get_or_create_collection(
-                name="my_collection",
+                name=self.collection_name,
                 embedding_function=model
             ))
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
@@ -318,7 +321,20 @@ def extract_text_chunks(pdf_path):
     return chunk_list, id_list, meta_list
 
 if __name__ == '__main__':
+    config = configparser.ConfigParser()
+
+    collection_name = None
+    model_name = None
+    try:
+        config.read('config.ini')
+        collection_name = config['Settings']['name']
+        model_name = config['Settings']['model']
+    except Exception as e:
+        # default settings
+        collection_name = "my_collection"
+        model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
+
     app = wx.App(False)
-    frame = MyFrame()
+    frame = MyFrame(collection_name, model_name)
     frame.Show()
     app.MainLoop()
