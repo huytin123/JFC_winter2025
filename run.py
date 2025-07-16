@@ -6,20 +6,22 @@ import os
 import chromadb
 from datetime import datetime
 import wx.richtext  # For RichTextCtrl attributes
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+import configparser
 
 class MyFrame(MyFrame1):
-    def __init__(self):
+    def __init__(self, collection_name, model_name):
         super().__init__(None)
-        self.build1 = None
-        self.dvcBuild.AppendItem(["Build 1", "Delete"])
-        self.build2 = None
-        self.dvcBuild.AppendItem(["Build 2", "Delete"])
+        self.collection_name = collection_name
+        self.model_name = model_name
+        self.build = []
+        self.collection = []
         self.load_build(None)
         self.num = 3
         
     @override
     def pdf_add(self, event):
-        if self.build1 == None and self.build2 == None:
+        if len(self.build) > 0:
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -33,77 +35,114 @@ class MyFrame(MyFrame1):
             self.tc.ShowPosition(self.tc.GetLastPosition())
             return
 
-        with wx.FileDialog(self, "Open PDF file", wildcard="PDF files (*.pdf)|*.pdf",
+  return pathnames
+      
+        button = event.GetEventObject()
+        label = button.GetLabel() 
+
+        pathnames=[]
+        if label == "➕ Add PDF": 
+            pathnames = self.add_files()
+        else:
+            pathnames = self.add_folders()
+
+        if pathnames == None:
+            return
+        
+        self.start_loading()
+        collection = self.get_collection()
+        if collection == None:
+            return 
+
+        processed = 0
+        for pathname in pathnames:
+            name = os.path.basename(pathname)
+            docs, ids, metas = extract_text_chunks(pathname)
+            if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
+                collection.add(
+                    documents=docs,
+                    ids=ids,
+                    metadatas=metas,
+                )
+            
+                self.dvc.AppendItem([name, "Delete"])
+            
+                attr = wx.richtext.RichTextAttr()
+                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+                attr.SetTextColour(wx.Colour("#000000"))  # Black text
+                attr.SetParagraphSpacingBefore(20)
+                attr.SetParagraphSpacingAfter(20)
+                attr.SetLeftIndent(75, 0)
+                attr.SetRightIndent(75)
+                self.tc.BeginStyle(attr)
+                self.tc.WriteText("Added: " + str(name) + "\n")
+                self.tc.EndStyle()
+                processed += 1
+                attr = wx.richtext.RichTextAttr()
+                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+                attr.SetTextColour(wx.Colour("#000000"))  # Black text
+                attr.SetParagraphSpacingBefore(20)
+                attr.SetParagraphSpacingAfter(20)
+                attr.SetLeftIndent(75, 0)
+                attr.SetRightIndent(75)
+                self.tc.BeginStyle(attr)
+                self.tc.WriteText("Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
+                self.tc.EndStyle()
+            else:
+                attr = wx.richtext.RichTextAttr()
+                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+                attr.SetTextColour(wx.Colour("#000000"))  # Black text
+                attr.SetParagraphSpacingBefore(20)
+                attr.SetParagraphSpacingAfter(20)
+                attr.SetLeftIndent(75, 0)
+                attr.SetRightIndent(75)
+                self.tc.BeginStyle(attr)
+                self.tc.WriteText("Document " + name + " Already in Database\n")
+                self.tc.EndStyle()
+        
+            self.end_loading()
+ 
+    def get_collection(self):
+        collection = None
+        if len(self.build) > 1:
+            dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
+            if dlg.ShowModal() == wx.ID_CANCEL:
+                return
+
+            collection = self.collection[dlg.GetSelection()]
+        else:
+            collection = self.collection[0]
+
+        return collection
+
+    def add_folders (self):
+        pathnames = []
+        with wx.DirDialog(self, "Select a folder",
+                       style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as folderDialog:
+
+            if folderDialog.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            folder_path = folderDialog.GetPath()
+
+            #collect all files qithin the directory
+            for root, dirs, files in os.walk(folder_path):
+                for filename in files:
+                    if filename.lower().endswith('.pdf'):
+                        full_path = os.path.join(root, filename)
+                        pathnames.append(full_path)
+
+        return pathnames
+    
+    def add_files (self):
+        pathnames = []
+        with wx.FileDialog(self, "Open PDF Files", wildcard="PDF files (*.pdf)|*.pdf",
                        style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
-
-            if self.build1 != None and self.build2 != None:
-                dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
-                if dlg.ShowModal() == wx.ID_CANCEL:
-                    return
-
-                if dlg.GetSelection == 0:
-                    collection = self.collection1
-                else:
-                    collection = self.collection2
-            elif self.build1 != None:
-                collection = self.collection1
-            else:
-                collection = self.collection2
-
-            self.start_loading()
             
             pathnames = fileDialog.GetPaths()
-            processed = 0
-            for pathname in pathnames:
-                name = os.path.basename(pathname)
-                docs, ids = extract_text_chunks(pathname)
-                metas = [{"Name": name}] * len(ids)
-                if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-                    collection.add(
-                        documents=docs,
-                        ids=ids,
-                        metadatas=metas,
-                    )
-                
-                    self.dvc.AppendItem([name, "Delete"])
-                
-                    attr = wx.richtext.RichTextAttr()
-                    attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                    attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                    attr.SetParagraphSpacingBefore(20)
-                    attr.SetParagraphSpacingAfter(20)
-                    attr.SetLeftIndent(75, 0)
-                    attr.SetRightIndent(75)
-                    self.tc.BeginStyle(attr)
-                    self.tc.WriteText("Added: " + str(name) + "\n")
-                    self.tc.EndStyle()
-                    processed += 1
-                    attr = wx.richtext.RichTextAttr()
-                    attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                    attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                    attr.SetParagraphSpacingBefore(20)
-                    attr.SetParagraphSpacingAfter(20)
-                    attr.SetLeftIndent(75, 0)
-                    attr.SetRightIndent(75)
-                    self.tc.BeginStyle(attr)
-                    self.tc.WriteText("Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
-                    self.tc.EndStyle()
-                else:
-                    attr = wx.richtext.RichTextAttr()
-                    attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                    attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                    attr.SetParagraphSpacingBefore(20)
-                    attr.SetParagraphSpacingAfter(20)
-                    attr.SetLeftIndent(75, 0)
-                    attr.SetRightIndent(75)
-                    self.tc.BeginStyle(attr)
-                    self.tc.WriteText("Document " + name + " Already in Database\n")
-                    self.tc.EndStyle()
-
-            self.end_loading()
 
     def isSubset(self, a, b):
         for i in range(len(b)):
@@ -352,14 +391,25 @@ class MyFrame(MyFrame1):
             
             chroma_client = chromadb.PersistentClient(path=pathname)
             
-            if self.build1 == None:
-                self.build1 = pathname
-                self.collection1 = chroma_client.get_or_create_collection(name="my_collection")
-                self.dvcBuild.SetTextValue(pathname, 0, 1)
-            else:
-                self.build2 = pathname
-                self.collection2 = chroma_client.get_or_create_collection(name="my_collection")
-                self.dvcBuild.SetTextValue(pathname, 1, 1)
+            '''
+            try:
+                chroma_client.delete_collection(name="my_collection")
+                #collection = chroma_client.get_or_create_collection(name="my_collection")
+            except Exception as e:
+                pass
+            '''
+            model = None
+            try:
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
+            except Exception as e:
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
+            
+            self.build.append(pathname)
+            self.collection.append(chroma_client.get_or_create_collection(
+                name=self.collection_name,
+                embedding_function=model
+            ))
+            self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -468,7 +518,20 @@ def extract_text_chunks(pdf_path):
     return chunk_list, meta_list
 
 if __name__ == '__main__':
+    config = configparser.ConfigParser()
+
+    collection_name = None
+    model_name = None
+    try:
+        config.read('config.ini')
+        collection_name = config['Settings']['name']
+        model_name = config['Settings']['model']
+    except Exception as e:
+        # default settings
+        collection_name = "my_collection"
+        model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
+
     app = wx.App(False)
-    frame = MyFrame()
+    frame = MyFrame(collection_name, model_name)
     frame.Show()
     app.MainLoop()
