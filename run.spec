@@ -1,0 +1,65 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+
+a = Analysis(
+    ['run.py'],
+    pathex=[],
+    binaries=[],
+    datas=[],
+    hiddenimports=[
+    'chromadb.telemetry.product.posthog',
+    'chromadb.api.segment',
+    'chromadb.db.impl',
+    'chromadb.db.impl.sqlite',
+    'chromadb.migrations',
+    'chromadb.migrations.embeddings_queue',
+    'chromadb.segment.impl.manager',
+    'chromadb.segment.impl.manager.local',
+    'chromadb.segment.impl.metadata',
+    'chromadb.segment.impl.metadata.sqlite',
+    'chromadb.segment.impl.vector',
+    'chromadb.execution.executor.local',
+    'chromadb.quota.simple_quota_enforcer',
+    'chromadb.rate_limit.simple_rate_limit',
+	'chromadb.api.rust',
+	'transformers.models.gemma3n',
+	'transformers.models.glm4v',
+	'transformers.models.smollm3',
+    "transformers.models.t5gemma.modeling_t5gemma",
+    "transformers.models.t5gemma.configuration_t5gemma",
+	],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=True,
+    optimize=0,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [('v', None, 'OPTION')],
+    exclude_binaries=True,
+    name='run',
+    debug=True,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='run',
+)
