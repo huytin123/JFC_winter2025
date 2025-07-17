@@ -86,6 +86,7 @@ class MyFrame(MyFrame1):
             for pathname in pathnames:
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
     def write_to_tc(self, text):
+        self.tc.SetInsertionPointEnd()
         attr = wx.richtext.RichTextAttr()
         attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
         attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -107,7 +108,9 @@ class MyFrame(MyFrame1):
                     ids=ids,
                     metadatas=metas,
                 )
+
             wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
+
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -304,7 +307,7 @@ class MyFrame(MyFrame1):
             self.query_collection(text, self.num, self.collection[i])
         
         
-        self.tc.ShowPosition(0)
+        #self.tc.ShowPosition()
 
     def rerank(self, data,question):
         try:
@@ -365,7 +368,7 @@ class MyFrame(MyFrame1):
                 page = metadata.get("Page", "")
                 content = doc
                 #filepath = os.path.abspath(filename)
-
+                self.tc.SetInsertionPointEnd()
                 attr = wx.richtext.RichTextAttr()
                 attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
                 attr.SetTextColour(wx.Colour("#000000"))
@@ -402,6 +405,7 @@ class MyFrame(MyFrame1):
 
         else:
             #response += "No results found.\n"
+            self.tc.SetInsertionPointEnd()
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))
