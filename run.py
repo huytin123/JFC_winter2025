@@ -7,6 +7,7 @@ import chromadb
 from datetime import datetime
 import wx.richtext  # For RichTextCtrl attributes
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import configparser
 
 class MyFrame(MyFrame1):
@@ -297,8 +298,8 @@ class MyFrame(MyFrame1):
         for i in range(len(self.build)):
             self.query_collection(text, self.num, self.collection[i])
         
-        # Scroll to the bottom
-        self.tc.ShowPosition(self.tc.GetLastPosition())
+        
+        self.tc.ShowPosition(0)
 
     def query_collection(self, text, n, collection):
         self.start_loading()
@@ -448,9 +449,9 @@ class MyFrame(MyFrame1):
         attr.SetLeftIndent(75, 0)
         attr.SetRightIndent(75)
         self.tc.BeginStyle(attr)
-        self.tc.WriteText("+" * 16 + "\n")
+        self.tc.WriteText("-" * 16 + "\n")
         self.tc.WriteText(" Loading...\n")
-        self.tc.WriteText("+" * 16 + "\n")
+        self.tc.WriteText("-" * 16 + "\n")
         self.tc.EndStyle()
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
@@ -469,27 +470,40 @@ class MyFrame(MyFrame1):
 
 def extract_text_chunks(pdf_path):
     chunk_list = []
-    id_list = []
     meta_list = []
+    total_chars = 0
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=600,
+        chunk_overlap=100,
+        separators=["\n\n", "\n", ".", " ", ""]
+    )
+
     with fitz.open(pdf_path) as doc:
         for page_num, page in enumerate(doc):
-            text = page.get_text()
-            para_count =0
-            for paragraph in text.split('\n\n'):
-                para_count =para_count+1
-                paragraph = paragraph.strip()
-                if paragraph:
-                    chunk_list.append(paragraph)
-                    id_list.append(
-                        os.path.basename(pdf_path) +str( page_num + 1)+ str(para_count)
-                    )
-                    meta_list.append({
-                        "Name": os.path.basename(pdf_path),
-                        "Page": page_num + 1,
-                        "Paragraph": para_count
-                    })
-                    
-    return chunk_list, id_list, meta_list
+            blocks = page.get_text("blocks")  # Get layout-based blocks
+            block_texts = [b[4] for b in blocks if b[4].strip()]
+            text = "\n".join(block_texts)
+            total_chars += len(text)
+
+            # Pre-clean formatting issues
+            text = text.replace("●", "\n●")  # Newline before bullets
+            text = re.sub(r'\.([^\s])', r'. \1', text)  # Add space after periods
+            text = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', text)  # Break camel join
+            text = re.sub(r'(?<!\n)\n(?!\n)', '\n', text)  # Normalize single newlines
+
+            # Split into chunks
+            chunks_for_page = splitter.split_text(text)
+            for chunk in chunks_for_page:
+                chunk_list.append(chunk.strip())
+                meta_list.append({
+                    "pdf": os.path.basename(pdf_path),
+                    "page": page_num + 1,
+                    "text": chunk.strip()
+                })
+
+    pdf_character_counts[os.path.basename(pdf_path)] = total_chars
+    return chunk_list, meta_list
+
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
