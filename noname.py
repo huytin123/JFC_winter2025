@@ -188,6 +188,12 @@ class MyFrame1(wx.Frame):
         self.Bind(EVT_CUSTOM_BUTTON, self.load_build, self.btn_load)
         self.Bind(EVT_CUSTOM_BUTTON, self.pdf_fetch, self.btn_refresh)
         self.text_search.Bind(wx.EVT_TEXT_ENTER, self.query_search)
+
+        self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
+        self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
+        self.btn_settings.Bind(wx.EVT_BUTTON, self.open_settings)
+        self.Bind(wx.EVT_CLOSE, self.close_threads)
+
         self.Bind(EVT_CUSTOM_BUTTON, self.query_search, self.btn_search)
         self.Bind(EVT_CUSTOM_BUTTON, self.show_help, self.btn_help)
         self.Bind(EVT_CUSTOM_BUTTON, self.open_settings, self.btn_settings)
@@ -228,6 +234,7 @@ class MyFrame1(wx.Frame):
     def query_search(self, event): event.Skip()
     def show_help(self, event): event.Skip()
     def open_settings(self, event): event.Skip()
+    def close_threads(self, event): event.Skip()
 
 if __name__ == "__main__":
     app = wx.App(False)

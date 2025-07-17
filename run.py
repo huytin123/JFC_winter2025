@@ -1,3 +1,7 @@
+
+from concurrent.futures import ThreadPoolExecutor
+import threading
+from sentence_transformers import CrossEncoder
 import re
 import wx
 from noname import MyFrame1
@@ -5,11 +9,13 @@ from typing_extensions import override
 import fitz
 import os
 import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from datetime import datetime
 import wx.richtext  # For RichTextCtrl attributes
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import configparser
+
 
 class MyFrame(MyFrame1):
     def __init__(self, collection_name, model_name):
@@ -20,88 +26,11 @@ class MyFrame(MyFrame1):
         self.collection = []
         self.load_build(None)
         self.num = 3
+        self.to_be_processed=0
+        self.thread_list =[]
+        self.executor = None
         
-    @override
-    def pdf_add(self, event):
-        if len(self.build) == 0:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Please Load a Build Before Adding PDFs\n")
-            self.tc.EndStyle()
-            self.tc.ShowPosition(self.tc.GetLastPosition())
-            return
-      
-        button = event.GetEventObject()
-        label = button.label 
-
-        pathnames=[]
-        if label == "Add PDF": 
-            pathnames = self.add_files()
-        else:
-            pathnames = self.add_folders()
-
-        if pathnames == None:
-            return
-
-        collection = self.get_collection()
-        if collection == None:
-            return 
-        
-        self.start_loading()
-
-        processed = 0
-        for pathname in pathnames:
-            name = os.path.basename(pathname)
-            docs, ids, metas = extract_text_chunks(pathname)
-            if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-                collection.add(
-                    documents=docs,
-                    ids=ids,
-                    metadatas=metas,
-                )
-            
-                self.dvc.AppendItem([name, "Delete"])
-            
-                attr = wx.richtext.RichTextAttr()
-                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                attr.SetParagraphSpacingBefore(20)
-                attr.SetParagraphSpacingAfter(20)
-                attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(75)
-                self.tc.BeginStyle(attr)
-                self.tc.WriteText("Added: " + str(name) + "\n")
-                self.tc.EndStyle()
-                processed += 1
-                attr = wx.richtext.RichTextAttr()
-                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                attr.SetParagraphSpacingBefore(20)
-                attr.SetParagraphSpacingAfter(20)
-                attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(75)
-                self.tc.BeginStyle(attr)
-                self.tc.WriteText("Processed: " + str(processed) + "/" + str(len(pathnames)) + "\n")
-                self.tc.EndStyle()
-            else:
-                attr = wx.richtext.RichTextAttr()
-                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                attr.SetParagraphSpacingBefore(20)
-                attr.SetParagraphSpacingAfter(20)
-                attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(75)
-                self.tc.BeginStyle(attr)
-                self.tc.WriteText("Document " + name + " Already in Database\n")
-                self.tc.EndStyle()
-        
-            self.end_loading()
+    
  
     def get_collection(self):
         collection = None
@@ -144,14 +73,132 @@ class MyFrame(MyFrame1):
                 return
             
             pathnames = fileDialog.GetPaths()
+            
+        return pathnames
+
+    def create_executors (self, pathnames, collection):
+        print("start executor")
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            self.executor = executor  
+
+            for pathname in pathnames:
+                print(pathname)
+                executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
+            wx.CallAfter(self.end_loading)
+
+    def put_pdf_collections(self, pathname, collection, pathnum): #in thread
+        print("start inpuitng things")
+        name = os.path.basename(pathname)
+        docs, ids, metas = extract_text_chunks(pathname)
+        if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
+            collection.add(
+                documents=docs,
+                ids=ids,
+                metadatas=metas,
+            )
+        
+            wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))  # Black text
+            attr.SetParagraphSpacingBefore(20)
+            attr.SetParagraphSpacingAfter(20)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(75)
+            wx.CallAfter(self.tc.BeginStyle,attr)
+            wx.CallAfter(self.tc.write, "Added: " + str(name) + "\n")
+            wx.CallAfter(self.tc.EndStyle)   
+            self.to_be_processed -= 1
+            wx.CallAfter(self.tc.write,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
+            wx.CallAfter(self.tc.EndStyle)
+        else:
+            self.to_be_processed -= 1
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))  # Black text
+            attr.SetParagraphSpacingBefore(20)
+            attr.SetParagraphSpacingAfter(20)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(75)
+            wx.CallAfter(self.tc.EndStyle) 
+            wx.CallAfter(self.tc.write,"Document " + name + " Already in Database\n")
+            wx.CallAfter(self.tc.EndStyle)
+        wx.CallAfter(self.end_loading)
+
+    @override
+    def pdf_add( self, event ):
+
+        if self.to_be_processed!=0:
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))  # Black text
+            attr.SetParagraphSpacingBefore(20)
+            attr.SetParagraphSpacingAfter(20)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(75)
+            self.tc.BeginStyle(attr)
+            self.tc.WriteText("Files are still being loaded\n")
+            self.tc.EndStyle()
+            self.tc.ShowPosition(self.tc.GetLastPosition())
+            return
+        
+        if len(self.build) == 0:
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))  # Black text
+            attr.SetParagraphSpacingBefore(20)
+            attr.SetParagraphSpacingAfter(20)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(75)
+            self.tc.BeginStyle(attr)
+            self.tc.WriteText("Please Load a Build Before Adding PDFs\n")
+            self.tc.EndStyle()
+            self.tc.ShowPosition(self.tc.GetLastPosition())
+            return
+        
+        button = event.GetEventObject()
+        label = button.GetLabel() 
+
+        pathnames=[]
+        if label == "➕ Add PDF": 
+            pathnames = self.add_files()
+        else:
+            pathnames = self.add_folders()
+
+        if pathnames == None:
+            return
+        
+        self.start_loading()
+        collection = self.get_collection()
+        if collection == None:
+            return 
+
+        self.to_be_processed = len(pathnames)
+        self.start_loading()
+        thread = threading.Thread(target=self.create_executors, args=(pathnames, collection))
+        #thread.daemon= True
+        self.thread_list.append (thread)
+        thread.start()
 
         return pathnames
+
 
     def isSubset(self, a, b):
         for i in range(len(b)):
             if not b[i] in a:
                 return False
         return True
+    
+    @override
+    def close_threads(self, event):
+
+        if self.executor:
+            self.executor.shutdown(wait=True)
+
+        for t in self.thread_list:
+            if t.is_alive():
+                t.join()
+        self.Destroy()
 
     @override
     def pdf_delete(self, event):
@@ -302,22 +349,63 @@ class MyFrame(MyFrame1):
         
         self.tc.ShowPosition(0)
 
+    def rerank(self, data,question):
+        try:
+            cross_encoder = CrossEncoder(model_name_or_path=self.model_name)
+        except Exception as e:
+            cross_encoder = CrossEncoder(model_name_or_path=model_name=self.model_name, local_files_only=True)
+        
+        for i in data:
+            retrieved_docs = data['documents'][0]
+            retrieved_metadata = data['metadatas'][0]
+            retrieved_id =data['ids'][0]
+            pairs = [[question, doc] for doc in retrieved_docs]
+            scores = cross_encoder.predict(pairs)
+            sorted_entries = sorted(
+                zip(scores, retrieved_docs, retrieved_id, retrieved_metadata),
+                key=lambda x: x[0],
+                reverse=True
+            )
+        return sorted_entries
+
+
+
     def query_collection(self, text, n, collection):
+        
         self.start_loading()
         data = collection.query(query_texts=text, n_results=n)
-        
-        # Combine all response lines into one chat message block
+        data = self.rerank( data, text) #score, doc, metadata
+      
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
         response = f"System ({timestamp}):\n"
+        
         if data["documents"] and len(data["documents"][0]) > 0:
-            for idx in range(len(data["ids"][0])):
-                current_id = data['ids'][0][idx]
-                filename = data['metadatas'][0][idx]['Name']
-                content = data['documents'][0][idx]
-                response += f"Result #{idx+1}:\nFile: {filename}\nID: {current_id}\nContent: {content}\n{'-' * 40}\n"
+          for i, (score, doc, current_id, metadata) in enumerate(data):
+              # filename = data['metadatas'][0][idx]['Name']
+              # page = data['metadatas'][0][idx]['Page']
+              # para = data['metadatas'][0][idx]['Paragraph']
+              # content = data['documents'][0][idx]
+
+              filename = metadata.get("Name", "")
+              page = metadata.get("Page", "")
+              content = doc
+              response += f"Result #{i+1}:\nFile: {filename}\nPage: {page}\n
+                            ID: {ccurrent_id}\nContent: {content}\n{'-' * 40}\n
+                            Score: {score}\n"
+              
+#               self.tc.write("+" * 16 + "\n")
+#               self.tc.write("Top #" + str(i+1) + "\n")
+#               self.tc.write("+" * 16 + "\n")
+#               self.tc.write("File: " + str(filename) + "\n")
+#               self.tc.write("Page: " + str(page) + "\n")
+#               self.tc.write("Paragraph: " + str(para) + "\n")
+#               self.tc.write("Score: " + str(score) + "\n")
+#               self.tc.write("+" * 16 + "\n")
+#               self.tc.write(str(content) + "\n\n")
+
         else:
             response += "No results found.\n"
-        
+      
         attr = wx.richtext.RichTextAttr()
         attr.SetBackgroundColour(wx.Colour("#FFFFFF"))  # White background for system
         attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -328,7 +416,7 @@ class MyFrame(MyFrame1):
         self.tc.BeginStyle(attr)
         self.tc.WriteText(response)
         self.tc.EndStyle()
-        self.end_loading()
+        self.end_loading() 
         
         # Scroll to the bottom
         self.tc.ShowPosition(self.tc.GetLastPosition())
@@ -369,6 +457,7 @@ class MyFrame(MyFrame1):
             '''
             model = None
             try:
+
                 model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
             except Exception as e:
                 model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
@@ -376,6 +465,7 @@ class MyFrame(MyFrame1):
             self.build.append(pathname)
             self.collection.append(chroma_client.get_or_create_collection(
                 name=self.collection_name,
+
                 embedding_function=model
             ))
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
@@ -450,8 +540,7 @@ class MyFrame(MyFrame1):
         attr.SetLeftIndent(75, 0)
         attr.SetRightIndent(75)
         self.tc.BeginStyle(attr)
-        self.tc.WriteText("-" * 16 + "\n")
-        self.tc.WriteText(" Loading...\n")
+        self.tc.WriteText("Loading...\n")
         self.tc.WriteText("-" * 16 + "\n")
         self.tc.EndStyle()
         self.tc.ShowPosition(self.tc.GetLastPosition())
