@@ -164,8 +164,7 @@ class MyFrame(MyFrame1):
             return
         
         button = event.GetEventObject()
-        label = button.GetLabel() 
-        print("label",label)
+        label = button.label
         pathnames=[]
         if label == "Add PDF": 
             pathnames = self.add_files()
@@ -506,7 +505,7 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             self.tc.BeginStyle(attr)
-            self.tc.WriteText("*** Unloaded " + self.dvcBuild.GetTextValue(row, 0) + ": " + str(name) + " ***\n")
+            self.tc.WriteText("*** Unloaded " + build_num + ": " + str(name) + " ***\n")
             self.tc.EndStyle()
             self.pdf_fetch(None)
 
