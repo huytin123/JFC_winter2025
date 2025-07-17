@@ -167,8 +167,7 @@ class MyFrame(MyFrame1):
             return
         
         button = event.GetEventObject()
-        label = button.GetLabel() 
-        print("label",label)
+        label = button.label
         pathnames=[]
         if label == "Add PDF": 
             pathnames = self.add_files()
