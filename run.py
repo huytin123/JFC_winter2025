@@ -508,7 +508,7 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             self.tc.BeginStyle(attr)
-            self.tc.WriteText("*** Unloaded " + self.dvcBuild.GetTextValue(row, 0) + ": " + str(name) + " ***\n")
+            self.tc.WriteText("*** Unloaded " + build_num + ": " + str(name) + " ***\n")
             self.tc.EndStyle()
             self.pdf_fetch(None)
 
