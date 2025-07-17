@@ -1,5 +1,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
+import platform
+import subprocess
 import threading
 from sentence_transformers import CrossEncoder
 import re
@@ -83,6 +85,17 @@ class MyFrame(MyFrame1):
 
             for pathname in pathnames:
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
+    def write_to_tc(self, text):
+        attr = wx.richtext.RichTextAttr()
+        attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+        attr.SetTextColour(wx.Colour("#000000"))  # Black text
+        attr.SetParagraphSpacingBefore(20)
+        attr.SetParagraphSpacingAfter(20)
+        attr.SetLeftIndent(75, 0)
+        attr.SetRightIndent(75)
+        self.tc.BeginStyle(attr)
+        self.tc.WriteText(text)
+        self.tc.EndStyle()
 
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
         name = os.path.basename(pathname)
@@ -118,7 +131,7 @@ class MyFrame(MyFrame1):
         else:
             with self.lock:
                 self.to_be_processed -= 1
-                print("Processed:", self.to_be_processed)
+                #print("Processed:", self.to_be_processed)
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -136,30 +149,12 @@ class MyFrame(MyFrame1):
     def pdf_add( self, event ):
 
         if self.to_be_processed!=0:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Files are still being loaded\n")
-            self.tc.EndStyle()
+            self.write_to_tc("Files are still being loaded\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
             return
         
         if len(self.build) == 0:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Please Load a Build Before Adding PDFs\n")
-            self.tc.EndStyle()
+            self.write_to_tc("Please Load a Build Before Adding PDFs\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
             return
         
@@ -212,16 +207,8 @@ class MyFrame(MyFrame1):
             name = self.dvc.GetTextValue(row, 0)
             self.dvc.DeleteItem(row)
             self.delete_item(name)
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Deleted: " + str(name) + "\n")
-            self.tc.EndStyle()
+
+            self.write_to_tc("Deleted: " + str(name) + "\n")
 
         self.end_loading()
 
@@ -263,31 +250,15 @@ class MyFrame(MyFrame1):
                         
                 self.dvc.DeleteItem(delete_row)
                 
-                attr = wx.richtext.RichTextAttr()
-                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                attr.SetParagraphSpacingBefore(20)
-                attr.SetParagraphSpacingAfter(20)
-                attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(75)
-                self.tc.BeginStyle(attr)
-                self.tc.WriteText("Deleted: " + str(item) + "\n")
-                self.tc.EndStyle()
+                self.write_to_tc("Deleted: " + str(item) + "\n")
+
 
         for item in names:
             if item not in current:
                 self.dvc.AppendItem([item, "Delete"])
                 
-                attr = wx.richtext.RichTextAttr()
-                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                attr.SetParagraphSpacingBefore(20)
-                attr.SetParagraphSpacingAfter(20)
-                attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(75)
-                self.tc.BeginStyle(attr)
-                self.tc.WriteText("Added: " + str(item) + "\n")
-                self.tc.EndStyle()
+                self.write_to_tc("Deleted: " + str(item) + "\n")
+
 
         self.end_loading()
 
@@ -297,32 +268,14 @@ class MyFrame(MyFrame1):
             if m["Name"] not in names:
                 names.append(m["Name"])
                 
-        attr = wx.richtext.RichTextAttr()
-        attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-        attr.SetTextColour(wx.Colour("#000000"))  # Black text
-        attr.SetParagraphSpacingBefore(20)
-        attr.SetParagraphSpacingAfter(20)
-        attr.SetLeftIndent(75, 0)
-        attr.SetRightIndent(75)
-        self.tc.BeginStyle(attr)
-        self.tc.WriteText("Files in Database: " + str(names) + "\n")
-        self.tc.EndStyle()
+        self.write_to_tc("Files in Database: " + str(names) + "\n")
         self.tc.ShowPosition(self.tc.GetLastPosition())
         return names
         
     @override
     def query_search(self, event):
         if len(self.build) == 0:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Please Load a Build Before Searching\n")
-            self.tc.EndStyle()
+            self.write_to_tc("Please Load a Build Before Searching\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
             return
         
@@ -371,6 +324,26 @@ class MyFrame(MyFrame1):
                 reverse=True
             )
         return sorted_entries
+    
+    @override
+    def on_url_click(self, event):
+        filepath = event.GetString()
+
+        if os.path.exists(filepath):
+            system = platform.system()
+            try:
+                if system == "Darwin":  # macOS
+                    subprocess.run(["open", filepath], check=True)
+                elif system == "Windows":
+                    os.startfile(filepath)
+                elif system == "Linux":
+                    subprocess.run(["xdg-open", filepath], check=True)
+                else:
+                    wx.MessageBox("Unsupported OS", "Error", wx.ICON_ERROR)
+            except Exception as e:
+                wx.MessageBox(f"Failed to open file:\n{e}", "Error", wx.ICON_ERROR)
+        else:
+            wx.MessageBox(f"File not found:\n{filepath}", "Error", wx.ICON_ERROR)
 
 
 
@@ -381,45 +354,65 @@ class MyFrame(MyFrame1):
         data = self.rerank( data, text) #score, doc, metadata
       
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
-        response = f"System ({timestamp}):\n"
         
         if data[1] and len(data[1]) > 0:
-          for i, (score, doc, current_id, metadata) in enumerate(data):
+            for i, (score, doc, current_id, metadata) in enumerate(data):
               # filename = data['metadatas'][0][idx]['Name']
               # page = data['metadatas'][0][idx]['Page']
               # para = data['metadatas'][0][idx]['Paragraph']
               # content = data['documents'][0][idx]
+                filepath = metadata.get("Name", "")
+                page = metadata.get("Page", "")
+                content = doc
+                #filepath = os.path.abspath(filename)
 
-              filename = metadata.get("Name", "")
-              page = metadata.get("Page", "")
-              content = doc
-              response += f"Result #{i+1}:\nFile: {filename}\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n"
+                attr = wx.richtext.RichTextAttr()
+                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+                attr.SetTextColour(wx.Colour("#000000"))
+                attr.SetParagraphSpacingBefore(10)
+                attr.SetParagraphSpacingAfter(10)
+                attr.SetLeftIndent(75, 0)
+                attr.SetRightIndent(500)
+                self.tc.BeginStyle(attr)
+
+                # urlStyle = wx.richtext.RichTextAttr()
+                # urlStyle.SetTextColour(wx.BLUE)
+                # urlStyle.SetFontUnderlined(True)
+
+                # self.tc.WriteText("RichTextCtrl can also display URLs, such as this one: ")
+                # self.tc.BeginStyle(urlStyle)
+                # self.tc.BeginURL("http://wxPython.org/")
+                # self.tc.WriteText("The wxPython Web Site")
+                # self.tc.EndURL()
+                # self.tc.EndStyle()
+
+                self.tc.WriteText(f"System ({timestamp}):\nResult #{i+1}:\nFile: ")
+                self.tc.BeginURL(filepath)
+                self.tc.BeginTextColour(wx.BLUE)
+                self.tc.BeginUnderline()
+                self.tc.WriteText(filepath)
+                self.tc.EndUnderline()
+                self.tc.EndTextColour()
+
+                self.tc.EndURL()
+                self.tc.WriteText(f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n")
+                self.tc.EndStyle()
+                #response += f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n"
               
-#               self.tc.write("+" * 16 + "\n")
-#               self.tc.write("Top #" + str(i+1) + "\n")
-#               self.tc.write("+" * 16 + "\n")
-#               self.tc.write("File: " + str(filename) + "\n")
-#               self.tc.write("Page: " + str(page) + "\n")
-#               self.tc.write("Paragraph: " + str(para) + "\n")
-#               self.tc.write("Score: " + str(score) + "\n")
-#               self.tc.write("+" * 16 + "\n")
-#               self.tc.write(str(content) + "\n\n")
 
         else:
-            response += "No results found.\n"
+            #response += "No results found.\n"
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))
+            attr.SetParagraphSpacingBefore(10)
+            attr.SetParagraphSpacingAfter(10)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(500)
+            self.tc.BeginStyle(attr)
+            self.tc.WriteText("System ({timestamp}):\nNo results found.\n")
+            self.tc.EndStyle()
       
-        attr = wx.richtext.RichTextAttr()
-        attr.SetBackgroundColour(wx.Colour("#FFFFFF"))  # White background for system
-        attr.SetTextColour(wx.Colour("#000000"))  # Black text
-        attr.SetParagraphSpacingBefore(10)
-        attr.SetParagraphSpacingAfter(10)
-        attr.SetLeftIndent(75, 0)  # Left-aligned with small left indent
-        attr.SetRightIndent(500)
-        self.tc.BeginStyle(attr)
-        self.tc.WriteText(response)
-        self.tc.EndStyle()
-        self.end_loading() 
-        
         # Scroll to the bottom
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
@@ -433,16 +426,7 @@ class MyFrame(MyFrame1):
             
             pathname = folder.GetPath()
             if pathname in self.build:
-                attr = wx.richtext.RichTextAttr()
-                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-                attr.SetTextColour(wx.Colour("#000000"))  # Black text
-                attr.SetParagraphSpacingBefore(20)
-                attr.SetParagraphSpacingAfter(20)
-                attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(75)
-                self.tc.BeginStyle(attr)
-                self.tc.WriteText("Build Already Loaded\n")
-                self.tc.EndStyle()
+                self.write_to_tc("Build Already Loaded\n")
                 self.tc.ShowPosition(self.tc.GetLastPosition())
                 return
 
@@ -472,18 +456,8 @@ class MyFrame(MyFrame1):
             ))
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Loaded or Created Build: " + str(pathname))
-            self.tc.EndStyle()
+            self.write_to_tc("Loaded or Created Build: " + str(pathname))
             self.end_loading()
-            
             self.pdf_fetch(None)
 
     @override
@@ -497,16 +471,7 @@ class MyFrame(MyFrame1):
             self.build.pop(row)
             self.collection.pop(row)
                 
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("*** Unloaded " + build_num + ": " + str(name) + " ***\n")
-            self.tc.EndStyle()
+            self.write_to_tc("*** Unloaded " + build_num + ": " + str(name) + " ***\n")
             self.pdf_fetch(None)
 
     def open_settings(self, event):
@@ -521,43 +486,16 @@ class MyFrame(MyFrame1):
         try: 
             os.startfile(".\\User Manual")
         except:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Can't Open or Find User Manual\n")
-            self.tc.EndStyle()
+            self.write_to_tc("Can't Open or Find User Manual\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
 
     def start_loading(self):
-        attr = wx.richtext.RichTextAttr()
-        attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-        attr.SetTextColour(wx.Colour("#000000"))  # Black text
-        attr.SetParagraphSpacingBefore(20)
-        attr.SetParagraphSpacingAfter(20)
-        attr.SetLeftIndent(75, 0)
-        attr.SetRightIndent(75)
-        self.tc.BeginStyle(attr)
-        self.tc.WriteText("Loading...\n")
-        self.tc.WriteText("-" * 16 + "\n")
-        self.tc.EndStyle()
+        self.write_to_tc("Loading...\n")
+        self.write_to_tc("-" * 16 + "\n")
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
     def end_loading(self):
-        attr = wx.richtext.RichTextAttr()
-        attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-        attr.SetTextColour(wx.Colour("#000000"))  # Black text
-        attr.SetParagraphSpacingBefore(20)
-        attr.SetParagraphSpacingAfter(20)
-        attr.SetLeftIndent(75, 0)
-        attr.SetRightIndent(75)
-        self.tc.BeginStyle(attr)
-        self.tc.WriteText("Complete\n")
-        self.tc.EndStyle()
+        self.write_to_tc("Complete\n")
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
 def extract_text_chunks(pdf_path):
@@ -592,10 +530,10 @@ def extract_text_chunks(pdf_path):
                 chunk_index +=1
                 chunk_list.append(chunk.strip())
                 id_list.append(
-                    os.path.basename(pdf_path) + "/"+str( page_num + 1)+ "/"+str(chunk_index)
+                    os.path.abspath(pdf_path) + "::pg="+str( page_num + 1)+ "::ch="+str(chunk_index)
                 )
                 meta_list.append({
-                    "Name": os.path.basename(pdf_path),
+                    "Name": os.path.abspath(pdf_path),
                     "Page": page_num + 1,
                 })
 

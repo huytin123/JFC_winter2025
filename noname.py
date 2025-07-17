@@ -197,6 +197,7 @@ class MyFrame1(wx.Frame):
         self.Bind(EVT_CUSTOM_BUTTON, self.query_search, self.btn_search)
         self.Bind(EVT_CUSTOM_BUTTON, self.show_help, self.btn_help)
         self.Bind(EVT_CUSTOM_BUTTON, self.open_settings, self.btn_settings)
+        self.tc.Bind(wx.EVT_TEXT_URL, self.on_url_click)
 
     def on_text_search_paint(self, event):
         dc = wx.PaintDC(self.text_search_panel)
@@ -235,6 +236,7 @@ class MyFrame1(wx.Frame):
     def show_help(self, event): event.Skip()
     def open_settings(self, event): event.Skip()
     def close_threads(self, event): event.Skip()
+    def on_url_click(self, event): event.Skip()
 
 if __name__ == "__main__":
     app = wx.App(False)
