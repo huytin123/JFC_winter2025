@@ -1,3 +1,4 @@
+import re
 import wx
 from noname import MyFrame1
 from typing_extensions import override
@@ -471,12 +472,14 @@ class MyFrame(MyFrame1):
 def extract_text_chunks(pdf_path):
     chunk_list = []
     meta_list = []
+    id_list= []
     total_chars = 0
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=600,
         chunk_overlap=100,
         separators=["\n\n", "\n", ".", " ", ""]
     )
+
 
     with fitz.open(pdf_path) as doc:
         for page_num, page in enumerate(doc):
@@ -493,16 +496,19 @@ def extract_text_chunks(pdf_path):
 
             # Split into chunks
             chunks_for_page = splitter.split_text(text)
+            chunk_index =0
             for chunk in chunks_for_page:
+                chunk_index +=1
                 chunk_list.append(chunk.strip())
+                id_list.append(
+                    os.path.basename(pdf_path) + "/"+str( page_num + 1)+ "/"+str(chunk_index)
+                )
                 meta_list.append({
-                    "pdf": os.path.basename(pdf_path),
-                    "page": page_num + 1,
-                    "text": chunk.strip()
+                    "Name": os.path.basename(pdf_path),
+                    "Page": page_num + 1,
                 })
 
-    pdf_character_counts[os.path.basename(pdf_path)] = total_chars
-    return chunk_list, meta_list
+    return chunk_list, id_list, meta_list
 
 
 if __name__ == '__main__':
