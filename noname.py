@@ -122,28 +122,27 @@ class MyFrame1(wx.Frame):
         heading.SetFont(heading_font)
         heading.SetForegroundColour("#04547C")  # Dark blue text
 
-        self.btn_help = CustomButton(heading_panel, "Help", wx.Size(60, 30), bg_color=wx.Colour("#684c6b"))
+        self.btn_help = CustomButton(heading_panel, "Help", wx.Size(60, 30), bg_color=wx.Colour("#564D7C"))
         self.btn_help.SetFont(sfpro_font)
 
-        # Layout to align Help button to the right
-        heading_sizer.AddStretchSpacer(prop=1)  # Left spacer to center heading
+        # Layout to align Help button to the right and push heading right
+        heading_sizer.AddStretchSpacer(prop=1)  # Left spacer to push content right
         heading_sizer.Add(heading, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Center the heading vertically
-        heading_sizer.AddStretchSpacer(prop=1)  # Right spacer to push button to the right
-        heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Help button with vertical alignment
+        heading_sizer.AddSpacer(300)  # Fixed spacer to push content further right
+        heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Help button
         heading_panel.SetSizer(heading_sizer)
 
         rightSizer.Add(heading_panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
 
-        # Replaced TextCtrl with RichTextCtrl
+        # RichTextCtrl for query results
         self.tc = wx.richtext.RichTextCtrl(self, wx.ID_ANY, "", wx.DefaultPosition, wx.DefaultSize,
-                                           wx.richtext.RE_MULTILINE | wx.richtext.RE_READONLY)
+                                        wx.richtext.RE_MULTILINE | wx.richtext.RE_READONLY)
         self.tc.SetBackgroundColour("#FFFFFF")  # White main workspace
         self.tc.SetFont(sfpro_font)
         rightSizer.Add(self.tc, 1, wx.ALL | wx.EXPAND, 10)
 
+        # Adjust the bottom controls to push the query text right
         bottomControls = wx.BoxSizer(wx.HORIZONTAL)
-
-        # Query box panel with text control and placeholder
         self.text_search_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(600, 36))
         self.text_search_panel.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
         self.text_search_panel.Bind(wx.EVT_PAINT, self.on_text_search_paint)
@@ -162,17 +161,16 @@ class MyFrame1(wx.Frame):
         self.text_search.Bind(wx.EVT_SET_FOCUS, self.on_text_search_focus)
         self.text_search.Bind(wx.EVT_KILL_FOCUS, self.on_text_search_focus)
 
-        # Search and Settings buttons
         self.btn_search = CustomButton(self, "Search", wx.Size(100, 30))
         self.btn_settings = CustomButton(self, "⚙", wx.Size(40, 30))
         self.btn_settings.SetFont(sfpro_font)
 
-        # Center query box with buttons adjacent
-        bottomControls.AddStretchSpacer(prop=1)  # Left spacer to center
+        # Push query box and buttons to the right
+        bottomControls.AddStretchSpacer(prop=2)  # Increased left spacer to push right
         bottomControls.Add(self.text_search_panel, 0, wx.ALL, 5)
         bottomControls.Add(self.btn_search, 0, wx.ALL, 5)
         bottomControls.Add(self.btn_settings, 0, wx.ALL, 5)
-        bottomControls.AddStretchSpacer(prop=1)  # Right spacer to center
+        bottomControls.AddStretchSpacer(prop=1)  # Right spacer
 
         rightSizer.Add(bottomControls, 0, wx.EXPAND, 5)
 
