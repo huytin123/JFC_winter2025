@@ -27,6 +27,7 @@ class MyFrame(MyFrame1):
         self.load_build(None)
         self.num = 3
         self.to_be_processed=0
+        self.lock = threading.Lock()
         self.thread_list =[]
         self.executor = None
         
@@ -82,21 +83,22 @@ class MyFrame(MyFrame1):
             self.executor = executor  
 
             for pathname in pathnames:
-                print(pathname)
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
             wx.CallAfter(self.end_loading)
 
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
-        print("start inpuitng things")
+        print("start inpuitng things", self.to_be_processed)
         name = os.path.basename(pathname)
         docs, ids, metas = extract_text_chunks(pathname)
         if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-            collection.add(
-                documents=docs,
-                ids=ids,
-                metadatas=metas,
-            )
-        
+            print("hello1")
+            with self.lock:
+                collection.add(
+                    documents=docs,
+                    ids=ids,
+                    metadatas=metas,
+                )
+            print("hello2", ids[0])
             wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -106,13 +108,20 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             wx.CallAfter(self.tc.BeginStyle,attr)
-            wx.CallAfter(self.tc.write, "Added: " + str(name) + "\n")
-            wx.CallAfter(self.tc.EndStyle)   
-            self.to_be_processed -= 1
-            wx.CallAfter(self.tc.write,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
-            wx.CallAfter(self.tc.EndStyle)
+            print("hello3", ids[0])
+            wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
+            print("hello4", ids[0])
+            with self.lock:
+                self.to_be_processed -= 1
+                print("Processed:", self.to_be_processed)
+            print("hello5", ids[0])
+            wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
+            #wx.CallAfter(self.tc.EndStyle)
+        
         else:
-            self.to_be_processed -= 1
+            with self.lock:
+                self.to_be_processed -= 1
+                print("Processed:", self.to_be_processed)
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -120,10 +129,11 @@ class MyFrame(MyFrame1):
             attr.SetParagraphSpacingAfter(20)
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
-            wx.CallAfter(self.tc.EndStyle) 
-            wx.CallAfter(self.tc.write,"Document " + name + " Already in Database\n")
+
+            wx.CallAfter(self.tc.BeginStyle,attr)
+            wx.CallAfter(self.tc.WriteText,"Document " + name + " Already in Database\n")
             wx.CallAfter(self.tc.EndStyle)
-        wx.CallAfter(self.end_loading)
+
 
     @override
     def pdf_add( self, event ):
@@ -158,9 +168,9 @@ class MyFrame(MyFrame1):
         
         button = event.GetEventObject()
         label = button.GetLabel() 
-
+        print("label",label)
         pathnames=[]
-        if label == "➕ Add PDF": 
+        if label == "Add PDF": 
             pathnames = self.add_files()
         else:
             pathnames = self.add_folders()
@@ -168,7 +178,7 @@ class MyFrame(MyFrame1):
         if pathnames == None:
             return
         
-        self.start_loading()
+       
         collection = self.get_collection()
         if collection == None:
             return 
@@ -179,8 +189,6 @@ class MyFrame(MyFrame1):
         #thread.daemon= True
         self.thread_list.append (thread)
         thread.start()
-
-        return pathnames
 
 
     def isSubset(self, a, b):
@@ -353,7 +361,7 @@ class MyFrame(MyFrame1):
         try:
             cross_encoder = CrossEncoder(model_name_or_path=self.model_name)
         except Exception as e:
-            cross_encoder = CrossEncoder(model_name_or_path=model_name=self.model_name, local_files_only=True)
+            cross_encoder = CrossEncoder(model_name_or_path=self.model_name, local_files_only=True)
         
         for i in data:
             retrieved_docs = data['documents'][0]
@@ -379,7 +387,7 @@ class MyFrame(MyFrame1):
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
         response = f"System ({timestamp}):\n"
         
-        if data["documents"] and len(data["documents"][0]) > 0:
+        if data[1] and len(data[1]) > 0:
           for i, (score, doc, current_id, metadata) in enumerate(data):
               # filename = data['metadatas'][0][idx]['Name']
               # page = data['metadatas'][0][idx]['Page']
@@ -389,9 +397,7 @@ class MyFrame(MyFrame1):
               filename = metadata.get("Name", "")
               page = metadata.get("Page", "")
               content = doc
-              response += f"Result #{i+1}:\nFile: {filename}\nPage: {page}\n
-                            ID: {ccurrent_id}\nContent: {content}\n{'-' * 40}\n
-                            Score: {score}\n"
+              response += f"Result #{i+1}:\nFile: {filename}\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n"
               
 #               self.tc.write("+" * 16 + "\n")
 #               self.tc.write("Top #" + str(i+1) + "\n")
