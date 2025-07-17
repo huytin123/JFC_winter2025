@@ -78,27 +78,22 @@ class MyFrame(MyFrame1):
         return pathnames
 
     def create_executors (self, pathnames, collection):
-        print("start executor")
         with ThreadPoolExecutor(max_workers=5) as executor:
             self.executor = executor  
 
             for pathname in pathnames:
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
-            wx.CallAfter(self.end_loading)
 
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
-        print("start inpuitng things", self.to_be_processed)
         name = os.path.basename(pathname)
         docs, ids, metas = extract_text_chunks(pathname)
         if not self.isSubset(collection.get(include=["metadatas"])["ids"], ids):
-            print("hello1")
             with self.lock:
                 collection.add(
                     documents=docs,
                     ids=ids,
                     metadatas=metas,
                 )
-            print("hello2", ids[0])
             wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -108,15 +103,17 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             wx.CallAfter(self.tc.BeginStyle,attr)
-            print("hello3", ids[0])
             wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
-            print("hello4", ids[0])
             with self.lock:
                 self.to_be_processed -= 1
-                print("Processed:", self.to_be_processed)
-            print("hello5", ids[0])
+                #print("Processed:", self.to_be_processed)
+
             wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
-            #wx.CallAfter(self.tc.EndStyle)
+            
+            if self.to_be_processed ==0:
+                wx.CallAfter(self.end_loading)
+
+            wx.CallAfter(self.tc.EndStyle)
         
         else:
             with self.lock:
