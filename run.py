@@ -21,10 +21,11 @@ import configparser
 
 
 class MyFrame(MyFrame1):
-    def __init__(self, collection_name, model_name):
+    def __init__(self, collection_name, model_name, rerank_name):
         super().__init__(None)
         self.collection_name = collection_name
         self.model_name = model_name
+        self.rerank_name =rerank_name
         self.build = []
         self.collection = []
         self.load_build(None)
@@ -327,9 +328,9 @@ class MyFrame(MyFrame1):
 
     def rerank(self, data,question):
         try:
-            cross_encoder = CrossEncoder(model_name_or_path=self.model_name)
+            cross_encoder = CrossEncoder(model_name_or_path=self.rerank_name)
         except Exception as e:
-            cross_encoder = CrossEncoder(model_name_or_path=self.model_name, local_files_only=True)
+            cross_encoder = CrossEncoder(model_name_or_path=self.rerank_name, local_files_only=True)
         
         for i in data:
             retrieved_docs = data['documents'][0]
@@ -578,12 +579,14 @@ if __name__ == '__main__':
         config.read('config.ini')
         collection_name = config['Settings']['name']
         model_name = config['Settings']['model']
+        rerank_name = config['Settings']['rerank']
     except Exception as e:
         # default settings
         collection_name = "my_collection"
         model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
+        rerank_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
 
     app = wx.App(False)
-    frame = MyFrame(collection_name, model_name)
+    frame = MyFrame(collection_name, model_name, rerank_name)
     frame.Show()
     app.MainLoop()
