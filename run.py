@@ -358,7 +358,7 @@ class MyFrame(MyFrame1):
         data = self.rerank( data, text) #score, doc, metadata
       
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
-        
+        query_pos = self.tc.GetInsertionPoint()
         if data[1] and len(data[1]) > 0:
             for i, (score, doc, current_id, metadata) in enumerate(data):
               # filename = data['metadatas'][0][idx]['Name']
@@ -419,7 +419,8 @@ class MyFrame(MyFrame1):
             self.tc.EndStyle()
       
         # Scroll to the bottom
-        self.tc.ShowPosition(self.tc.GetLastPosition())
+        if query_pos:
+            self.tc.ShowPosition(query_pos)
 
     @override
     def load_build(self, event):       
