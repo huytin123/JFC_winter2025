@@ -71,7 +71,7 @@ class MyFrame1(wx.Frame):
         self.SetBackgroundColour("#FFFFFF")
         sfpro_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "SF Pro Display")
         self.SetFont(sfpro_font)
-
+        
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Sidebar
@@ -117,15 +117,6 @@ class MyFrame1(wx.Frame):
         heading_panel = wx.Panel(self)
         heading_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        vinsi_img = wx.Image("logo/vinsi1.png", wx.BITMAP_TYPE_PNG).Scale(50, 50, wx.IMAGE_QUALITY_HIGH)
-        logo_vinsi = wx.StaticBitmap(heading_panel, bitmap=wx.Bitmap(vinsi_img))
-
-        jfc_img = wx.Image("logo/jfc.png", wx.BITMAP_TYPE_PNG).Scale(50, 50, wx.IMAGE_QUALITY_HIGH)
-        logo_jfc = wx.StaticBitmap(heading_panel, bitmap=wx.Bitmap(jfc_img))
-
-        usyd_img = wx.Image("logo/usyd.png", wx.BITMAP_TYPE_PNG).Scale(50, 50, wx.IMAGE_QUALITY_HIGH)
-        logo_usyd = wx.StaticBitmap(heading_panel, bitmap=wx.Bitmap(usyd_img))
-
         heading = wx.StaticText(heading_panel, label="Query Results")
         heading_font = wx.Font(18, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "SF Pro Display")
         heading.SetFont(heading_font)
@@ -135,14 +126,10 @@ class MyFrame1(wx.Frame):
         self.btn_help.SetFont(sfpro_font)
 
         # Layout to align Help button to the right and push heading right
-        heading_sizer.AddSpacer(20)
-        heading_sizer.Add(logo_vinsi, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
-        heading_sizer.Add(logo_usyd, 0, wx.ALIGN_CENTER_VERTICAL| wx.RIGHT, 10)
-        heading_sizer.Add(logo_jfc, 0, wx.ALIGN_CENTER_VERTICAL| wx.RIGHT, 10)
-        heading_sizer.AddSpacer(200) 
-        heading_sizer.Add(heading, 0, wx.ALIGN_CENTER_VERTICAL | wx.CENTER)
-        heading_sizer.AddSpacer(300)
-        heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)  # Help button
+        heading_sizer.AddStretchSpacer(prop=1)  # Left spacer to push content right
+        heading_sizer.Add(heading, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Center the heading vertically
+        heading_sizer.AddSpacer(300)  # Fixed spacer to push content further right
+        heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Help button
         heading_panel.SetSizer(heading_sizer)
 
         rightSizer.Add(heading_panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
@@ -152,10 +139,11 @@ class MyFrame1(wx.Frame):
                                         wx.richtext.RE_MULTILINE | wx.richtext.RE_READONLY)
         self.tc.SetBackgroundColour("#FFFFFF")  # White main workspace
         self.tc.SetFont(sfpro_font)
-        rightSizer.Add(self.tc, 1, wx.ALL | wx.EXPAND, 10)
+        rightSizer.Add(self.tc, 1, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 10)
 
         # Adjust the bottom controls to push the query text right
         bottomControls = wx.BoxSizer(wx.HORIZONTAL)
+
         self.text_search_panel = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.Size(600, 36))
         self.text_search_panel.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
         self.text_search_panel.Bind(wx.EVT_PAINT, self.on_text_search_paint)
@@ -176,18 +164,15 @@ class MyFrame1(wx.Frame):
 
         self.btn_search = CustomButton(self, "Search", wx.Size(100, 30))
         self.btn_settings = CustomButton(self, "⚙", wx.Size(40, 30))
-        self.btn_clear = CustomButton(self, "X", wx.Size(40, 30))
         self.btn_settings.SetFont(sfpro_font)
 
         # Push query box and buttons to the right
-        bottomControls.AddStretchSpacer(prop=2)  # Increased left spacer to push right
+        bottomControls.AddStretchSpacer(prop=2)
         bottomControls.Add(self.text_search_panel, 0, wx.ALL, 5)
         bottomControls.Add(self.btn_search, 0, wx.ALL, 5)
         bottomControls.Add(self.btn_settings, 0, wx.ALL, 5)
-        bottomControls.Add(self.btn_clear, 0, wx.ALL, 5)
-        bottomControls.AddStretchSpacer(prop=1)  # Right spacer
-
-        rightSizer.Add(bottomControls, 0, wx.EXPAND, 5)
+        bottomControls.AddStretchSpacer(prop=1)
+        rightSizer.Add(bottomControls, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         mainSizer.Add(rightSizer, 1, wx.EXPAND, 5)
 
@@ -203,17 +188,13 @@ class MyFrame1(wx.Frame):
         self.Bind(EVT_CUSTOM_BUTTON, self.load_build, self.btn_load)
         self.Bind(EVT_CUSTOM_BUTTON, self.pdf_fetch, self.btn_refresh)
         self.text_search.Bind(wx.EVT_TEXT_ENTER, self.query_search)
-
-        # self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
-        # self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
-        # self.btn_settings.Bind(wx.EVT_BUTTON, self.open_settings)
-        # self.btn_clear.Bind(wx.EVT_BUTTON, self.clear_tc)
+        self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
+        self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
+        self.btn_settings.Bind(wx.EVT_BUTTON, self.open_settings)
         self.Bind(wx.EVT_CLOSE, self.close_threads)
-
         self.Bind(EVT_CUSTOM_BUTTON, self.query_search, self.btn_search)
         self.Bind(EVT_CUSTOM_BUTTON, self.show_help, self.btn_help)
         self.Bind(EVT_CUSTOM_BUTTON, self.open_settings, self.btn_settings)
-        self.Bind(EVT_CUSTOM_BUTTON, self.clear_tc, self.btn_clear)
         self.tc.Bind(wx.EVT_TEXT_URL, self.on_url_click)
 
     def on_text_search_paint(self, event):
@@ -254,7 +235,6 @@ class MyFrame1(wx.Frame):
     def open_settings(self, event): event.Skip()
     def close_threads(self, event): event.Skip()
     def on_url_click(self, event): event.Skip()
-    def clear_tc(self, event): event.Skip()
 
 if __name__ == "__main__":
     app = wx.App(False)
