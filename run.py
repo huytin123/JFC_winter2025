@@ -448,33 +448,22 @@ class MyFrame(MyFrame1):
             except Exception as e:
                 pass
             '''
-            self.build.append(pathname)
-            collection = None
-            try:            
-                collection = chroma_client.get_collection(
-                    name=self.collection_name
-                )
-                if collection.metadata["Model"] != self.model_name:
-                    self.write_to_tc("Collection has been embedding with '" + collection.metadata["Model"] + "' instead of '" + self.model_name + "'\n")
-                    return
-                
+            model = None
+            try:
+
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
             except Exception as e:
-                model = None
-                try:
-                    model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
-                except Exception as e:
-                    model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
-                
-                collection = chroma_client.create_collection(
-                    name=self.collection_name,
-                    embedding_function=model,
-                    metadata={"Model": self.model_name}
-                )
-                
-            self.collection.append(collection)
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
+            
+            self.build.append(pathname)
+            self.collection.append(chroma_client.get_or_create_collection(
+                name=self.collection_name,
+
+                embedding_function=model
+            ))
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
-            self.write_to_tc("Loaded or Created Build: " + str(pathname) + "\n")
+            self.write_to_tc("Loaded or Created Build: " + str(pathname))
             self.end_loading()
             self.pdf_fetch(None)
 
