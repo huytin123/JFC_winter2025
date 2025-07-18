@@ -163,6 +163,7 @@ class MyFrame1(wx.Frame):
 
         self.btn_search = CustomButton(self, "Search", wx.Size(100, 30))
         self.btn_settings = CustomButton(self, "⚙", wx.Size(40, 30))
+        self.btn_clear = CustomButton(self, "X", wx.Size(40, 30))
         self.btn_settings.SetFont(sfpro_font)
 
         # Push query box and buttons to the right
@@ -170,6 +171,7 @@ class MyFrame1(wx.Frame):
         bottomControls.Add(self.text_search_panel, 0, wx.ALL, 5)
         bottomControls.Add(self.btn_search, 0, wx.ALL, 5)
         bottomControls.Add(self.btn_settings, 0, wx.ALL, 5)
+        bottomControls.Add(self.btn_clear, 0, wx.ALL, 5)
         bottomControls.AddStretchSpacer(prop=1)  # Right spacer
 
         rightSizer.Add(bottomControls, 0, wx.EXPAND, 5)
@@ -189,14 +191,16 @@ class MyFrame1(wx.Frame):
         self.Bind(EVT_CUSTOM_BUTTON, self.pdf_fetch, self.btn_refresh)
         self.text_search.Bind(wx.EVT_TEXT_ENTER, self.query_search)
 
-        self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
-        self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
-        self.btn_settings.Bind(wx.EVT_BUTTON, self.open_settings)
+        # self.btn_search.Bind(wx.EVT_BUTTON, self.query_search)
+        # self.btn_help.Bind(wx.EVT_BUTTON, self.show_help)
+        # self.btn_settings.Bind(wx.EVT_BUTTON, self.open_settings)
+        # self.btn_clear.Bind(wx.EVT_BUTTON, self.clear_tc)
         self.Bind(wx.EVT_CLOSE, self.close_threads)
 
         self.Bind(EVT_CUSTOM_BUTTON, self.query_search, self.btn_search)
         self.Bind(EVT_CUSTOM_BUTTON, self.show_help, self.btn_help)
         self.Bind(EVT_CUSTOM_BUTTON, self.open_settings, self.btn_settings)
+        self.Bind(EVT_CUSTOM_BUTTON, self.clear_tc, self.btn_clear)
         self.tc.Bind(wx.EVT_TEXT_URL, self.on_url_click)
 
     def on_text_search_paint(self, event):
@@ -237,6 +241,7 @@ class MyFrame1(wx.Frame):
     def open_settings(self, event): event.Skip()
     def close_threads(self, event): event.Skip()
     def on_url_click(self, event): event.Skip()
+    def clear_tc(self, event): event.Skip()
 
 if __name__ == "__main__":
     app = wx.App(False)
