@@ -260,7 +260,7 @@ class MyFrame(MyFrame1):
             if item not in current:
                 self.dvc.AppendItem([item, "Delete"])
                 
-                self.write_to_tc("Deleted: " + str(item) + "\n")
+                #self.write_to_tc("Deleted: " + str(item) + "\n")
 
 
         self.end_loading()
@@ -288,6 +288,7 @@ class MyFrame(MyFrame1):
         
         # Display user query in chat format with timestamp, right-aligned, grey background
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM (e.g., 09:49 AM)
+        self.tc.SetInsertionPointEnd()
         attr = wx.richtext.RichTextAttr()
         attr.SetBackgroundColour(wx.Colour("#C0C0C0"))  # Light grey background for user
         attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -364,7 +365,7 @@ class MyFrame(MyFrame1):
               # page = data['metadatas'][0][idx]['Page']
               # para = data['metadatas'][0][idx]['Paragraph']
               # content = data['documents'][0][idx]
-                filepath = metadata.get("Name", "")
+                filepath = metadata.get("Address", "")
                 page = metadata.get("Page", "")
                 content = doc
                 #filepath = os.path.abspath(filename)
@@ -537,7 +538,8 @@ def extract_text_chunks(pdf_path):
                     os.path.abspath(pdf_path) + "::pg="+str( page_num + 1)+ "::ch="+str(chunk_index)
                 )
                 meta_list.append({
-                    "Name": os.path.abspath(pdf_path),
+                    "Name": os.path.basename(pdf_path),
+                    "Address": os.path.abspath(pdf_path),
                     "Page": page_num + 1,
                 })
 
