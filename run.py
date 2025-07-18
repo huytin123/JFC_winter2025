@@ -557,12 +557,14 @@ if __name__ == '__main__':
         config.read('config.ini')
         collection_name = config['Settings']['name']
         model_name = config['Settings']['model']
+        rerank_name = config['Settings']['rerank']
     except Exception as e:
         # default settings
         collection_name = "my_collection"
         model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
+        rerank_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
 
     app = wx.App(False)
-    frame = MyFrame(collection_name, model_name)
+    frame = MyFrame(collection_name, model_name, rerank_name)
     frame.Show()
     app.MainLoop()
