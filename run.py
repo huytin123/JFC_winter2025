@@ -109,7 +109,7 @@ class MyFrame(MyFrame1):
                     metadatas=metas,
                 )
 
-            wx.CallAfter(self.dvc.AppendItem, [name, "Delete"])
+            wx.CallAfter(self.dvc.AppendItem, [name, "✗"])
 
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -205,7 +205,7 @@ class MyFrame(MyFrame1):
     def pdf_delete(self, event):
         row = self.dvc.ItemToRow(event.GetItem())
         self.start_loading()
-        if self.dvc.GetTextValue(row, 1) == "Delete":
+        if self.dvc.GetTextValue(row, 1) == "✗":
             name = self.dvc.GetTextValue(row, 0)
             self.dvc.DeleteItem(row)
             self.delete_item(name)
@@ -257,7 +257,7 @@ class MyFrame(MyFrame1):
 
         for item in names:
             if item not in current:
-                self.dvc.AppendItem([item, "Delete"])
+                self.dvc.AppendItem([item, "✗"])
                 
                 #self.write_to_tc("Deleted: " + str(item) + "\n")
 
@@ -481,7 +481,7 @@ class MyFrame(MyFrame1):
 
                 embedding_function=model
             ))
-            self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
+            self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "✗"])
             
             self.write_to_tc("Loaded or Created Build: " + str(pathname))
             self.end_loading()
@@ -492,7 +492,7 @@ class MyFrame(MyFrame1):
         row = self.dvcBuild.ItemToRow(event.GetItem())
         name = self.dvcBuild.GetTextValue(row, 1)
         build_num = self.dvcBuild.GetTextValue(row, 0)
-        if self.dvcBuild.GetTextValue(row, 2) == "Delete":
+        if self.dvcBuild.GetTextValue(row, 2) == "✗":
             self.dvcBuild.DeleteItem(row)
 
             self.build.pop(row)
