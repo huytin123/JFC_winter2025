@@ -1,6 +1,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import platform
+import signal
 import subprocess
 import threading
 from sentence_transformers import CrossEncoder
@@ -32,9 +33,7 @@ class MyFrame(MyFrame1):
         self.lock = threading.Lock()
         self.thread_list =[]
         self.executor = None
-        
     
- 
     def get_collection(self):
         collection = None
         if len(self.build) > 1:
@@ -94,7 +93,6 @@ class MyFrame(MyFrame1):
         attr.SetParagraphSpacingAfter(20)
         attr.SetLeftIndent(75, 0)
         attr.SetRightIndent(75)
-        attr.SetAlignment(wx.TEXT_ALIGNMENT_LEFT)
         self.tc.BeginStyle(attr)
         self.tc.WriteText(text)
         self.tc.EndStyle()
@@ -120,13 +118,12 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             wx.CallAfter(self.tc.BeginStyle,attr)
-            wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
+
             with self.lock:
                 self.to_be_processed -= 1
-                #print("Processed:", self.to_be_processed)
+                wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
+                wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
 
-            wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
-            
             if self.to_be_processed ==0:
                 wx.CallAfter(self.end_loading)
 
@@ -261,7 +258,7 @@ class MyFrame(MyFrame1):
             if item not in current:
                 self.dvc.AppendItem([item, "Delete"])
                 
-                self.write_to_tc("Deleted: " + str(item) + "\n")
+                #self.write_to_tc("Deleted: " + str(item) + "\n")
 
 
         self.end_loading()
@@ -279,55 +276,37 @@ class MyFrame(MyFrame1):
     @override
     def query_search(self, event):
         if len(self.build) == 0:
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))
-            # attr.SetParagraphSpacingBefore(20)
-            # attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
-            self.tc.BeginStyle(attr)
-            self.tc.WriteText("Please Load a Build Before Searching\n")
-            self.tc.EndStyle()
+            self.write_to_tc("Please Load a Build Before Searching\n")
+            self.tc.ShowPosition(self.tc.GetLastPosition())
             return
-
+        
         text = self.text_search.GetValue()
         if not text.strip():
             return  # Ignore empty queries
-
-        # Reset style and ensure a clean paragraph break
-        self.tc.BeginStyle(wx.richtext.RichTextAttr())  # Reset to default
-        self.tc.Newline()
-        timestamp = datetime.now().strftime("%I:%M %p")
+        
+        # Display user query in chat format with timestamp, right-aligned, grey background
+        timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM (e.g., 09:49 AM)
         self.tc.SetInsertionPointEnd()
-
         attr = wx.richtext.RichTextAttr()
-        attr.SetTextColour(wx.Colour("#000000"))
-        attr.SetAlignment(wx.TEXT_ALIGNMENT_RIGHT)      # Align bubble to the right
-        attr.SetParagraphSpacingBefore(30)
-
-        # Outer padding (from the widget edge)
-        attr.SetRightIndent(50)  # Push bubble away from right edge
-        attr.SetLeftIndent(150, 0)  # Push bubble to the right overall
-
-        padded_text = f"You ({timestamp}): {text}"
-
+        attr.SetBackgroundColour(wx.Colour("#C0C0C0"))  # Light grey background for user
+        attr.SetTextColour(wx.Colour("#000000"))  # Black text
+        attr.SetParagraphSpacingBefore(10)
+        attr.SetParagraphSpacingAfter(10)
+        attr.SetLeftIndent(500, 0)  # Right-aligned with large left indent
+        attr.SetRightIndent(75)
         self.tc.BeginStyle(attr)
-        self.tc.WriteText(padded_text)
-        self.tc.Newline()
+        self.tc.WriteText(f"You ({timestamp}): {text}\n")
         self.tc.EndStyle()
-
-
-        # Clear input and force layout
+        
+        # Clear the search input
         self.text_search.Clear()
-        self.tc.SetSize((800, 625)) 
-        self.tc.Layout() 
-
-        # Continue with query handling
+        
+        # Process query for each collection
         for i in range(len(self.build)):
             self.query_collection(text, self.num, self.collection[i])
-
-
+        
+        
+        #self.tc.ShowPosition()
 
     def rerank(self, data,question):
         try:
@@ -371,58 +350,60 @@ class MyFrame(MyFrame1):
 
 
     def query_collection(self, text, n, collection):
+        
         self.start_loading()
         data = collection.query(query_texts=text, n_results=n)
-        data = self.rerank(data, text)  # score, doc, metadata
-
+        data = self.rerank( data, text) #score, doc, metadata
+      
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
         query_pos = self.tc.GetInsertionPoint()
-
-        # Reset style for clean start
-        self.tc.BeginStyle(wx.richtext.RichTextAttr())
-
-        if data and len(data) > 0:
+        if data[1] and len(data[1]) > 0:
             for i, (score, doc, current_id, metadata) in enumerate(data):
-                filepath = metadata.get("Name", "")
+              # filename = data['metadatas'][0][idx]['Name']
+              # page = data['metadatas'][0][idx]['Page']
+              # para = data['metadatas'][0][idx]['Paragraph']
+              # content = data['documents'][0][idx]
+                filepath = metadata.get("Address", "")
                 page = metadata.get("Page", "")
                 content = doc
-
+                #filepath = os.path.abspath(filename)
                 self.tc.SetInsertionPointEnd()
                 attr = wx.richtext.RichTextAttr()
                 attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
                 attr.SetTextColour(wx.Colour("#000000"))
-                attr.SetParagraphSpacingBefore(10)  # Consistent spacing before
-                attr.SetParagraphSpacingAfter(10)   # Consistent spacing after
+                attr.SetParagraphSpacingBefore(10)
+                attr.SetParagraphSpacingAfter(10)
                 attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(20)
-                attr.SetAlignment(wx.TEXT_ALIGNMENT_LEFT)
+                attr.SetRightIndent(500)
                 self.tc.BeginStyle(attr)
 
-                self.tc.WriteText(f"System ({timestamp}):\n")
-                # Highlight "Result #{i+1}"
-                highlight_attr = wx.richtext.RichTextAttr()
-                highlight_attr.SetBackgroundColour(wx.Colour("#ADD8E6"))
-                highlight_attr.SetTextColour(wx.Colour("#000000"))
-                self.tc.BeginStyle(highlight_attr)
-                self.tc.WriteText(f"Result #{i+1}")
-                self.tc.EndStyle()
-                self.tc.WriteText(":\nFile: ")
+                # urlStyle = wx.richtext.RichTextAttr()
+                # urlStyle.SetTextColour(wx.BLUE)
+                # urlStyle.SetFontUnderlined(True)
 
-                # Style hyperlink
+                # self.tc.WriteText("RichTextCtrl can also display URLs, such as this one: ")
+                # self.tc.BeginStyle(urlStyle)
+                # self.tc.BeginURL("http://wxPython.org/")
+                # self.tc.WriteText("The wxPython Web Site")
+                # self.tc.EndURL()
+                # self.tc.EndStyle()
+
+                self.tc.WriteText(f"System ({timestamp}):\nResult #{i+1}:\nFile: ")
                 self.tc.BeginURL(filepath)
                 self.tc.BeginTextColour(wx.BLUE)
                 self.tc.BeginUnderline()
                 self.tc.WriteText(filepath)
                 self.tc.EndUnderline()
                 self.tc.EndTextColour()
-                self.tc.EndURL()
 
-                self.tc.WriteText(
-                    f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40} \n \n"
-                )
+                self.tc.EndURL()
+                self.tc.WriteText(f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n")
                 self.tc.EndStyle()
+                #response += f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n"
+              
 
         else:
+            #response += "No results found.\n"
             self.tc.SetInsertionPointEnd()
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -430,21 +411,18 @@ class MyFrame(MyFrame1):
             attr.SetParagraphSpacingBefore(10)
             attr.SetParagraphSpacingAfter(10)
             attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(20)
-            attr.SetAlignment(wx.TEXT_ALIGNMENT_LEFT)
+            attr.SetRightIndent(500)
             self.tc.BeginStyle(attr)
-            self.tc.WriteText(f"System ({timestamp}):\nNo results found.")
+            self.tc.WriteText("System ({timestamp}):\nNo results found.\n")
             self.tc.EndStyle()
-
-        # Add a final newline with consistent spacing to separate from future content
-        self.tc.BeginStyle(wx.richtext.RichTextAttr())
-        self.tc.Newline()
-        self.tc.EndStyle()
-
+      
         if query_pos:
             self.tc.ShowPosition(query_pos)
 
-
+    @override
+    def clear_tc(self, event):
+        self.tc.Clear()
+    
     @override
     def load_build(self, event):       
         with wx.DirDialog(self, "Select Directory to Create or Load Build", "./",
@@ -470,22 +448,33 @@ class MyFrame(MyFrame1):
             except Exception as e:
                 pass
             '''
-            model = None
-            try:
-
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
-            except Exception as e:
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
-            
             self.build.append(pathname)
-            self.collection.append(chroma_client.get_or_create_collection(
-                name=self.collection_name,
-
-                embedding_function=model
-            ))
+            collection = None
+            try:            
+                collection = chroma_client.get_collection(
+                    name=self.collection_name
+                )
+                if collection.metadata["Model"] != self.model_name:
+                    self.write_to_tc("Collection has been embedding with '" + collection.metadata["Model"] + "' instead of '" + self.model_name + "'\n")
+                    return
+                
+            except Exception as e:
+                model = None
+                try:
+                    model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
+                except Exception as e:
+                    model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
+                
+                collection = chroma_client.create_collection(
+                    name=self.collection_name,
+                    embedding_function=model,
+                    metadata={"Model": self.model_name}
+                )
+                
+            self.collection.append(collection)
             self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "Delete"])
             
-            self.write_to_tc("Loaded or Created Build: " + str(pathname))
+            self.write_to_tc("Loaded or Created Build: " + str(pathname) + "\n")
             self.end_loading()
             self.pdf_fetch(None)
 
@@ -562,7 +551,8 @@ def extract_text_chunks(pdf_path):
                     os.path.abspath(pdf_path) + "::pg="+str( page_num + 1)+ "::ch="+str(chunk_index)
                 )
                 meta_list.append({
-                    "Name": os.path.abspath(pdf_path),
+                    "Name": os.path.basename(pdf_path),
+                    "Address": os.path.abspath(pdf_path),
                     "Page": page_num + 1,
                 })
 
