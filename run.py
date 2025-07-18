@@ -378,7 +378,8 @@ class MyFrame(MyFrame1):
         
         if data and len(data) > 0:
             for i, (score, doc, current_id, metadata) in enumerate(data):
-                filepath = metadata.get("Name", "")
+                filepath = metadata.get("Address", "")
+                filename = metadata.get("Name", "")
                 page = metadata.get("Page", "")
                 content = doc
 
@@ -407,7 +408,7 @@ class MyFrame(MyFrame1):
                 self.tc.BeginURL(filepath)
                 self.tc.BeginTextColour(wx.BLUE)
                 self.tc.BeginUnderline()
-                self.tc.WriteText(filepath)
+                self.tc.WriteText(filename)
                 self.tc.EndUnderline()
                 self.tc.EndTextColour()
                 self.tc.EndURL()
