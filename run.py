@@ -1,6 +1,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import platform
+import signal
 import subprocess
 import threading
 from sentence_transformers import CrossEncoder
@@ -32,9 +33,7 @@ class MyFrame(MyFrame1):
         self.lock = threading.Lock()
         self.thread_list =[]
         self.executor = None
-        
     
- 
     def get_collection(self):
         collection = None
         if len(self.build) > 1:
@@ -422,6 +421,10 @@ class MyFrame(MyFrame1):
         if query_pos:
             self.tc.ShowPosition(query_pos)
 
+    @override
+    def clear_tc(self, event):
+        self.tc.Clear()
+    
     @override
     def load_build(self, event):       
         with wx.DirDialog(self, "Select Directory to Create or Load Build", "./",
