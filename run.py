@@ -118,13 +118,12 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             wx.CallAfter(self.tc.BeginStyle,attr)
-            wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
+
             with self.lock:
                 self.to_be_processed -= 1
-                #print("Processed:", self.to_be_processed)
+                wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
+                wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
 
-            wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
-            
             if self.to_be_processed ==0:
                 wx.CallAfter(self.end_loading)
 
@@ -417,7 +416,6 @@ class MyFrame(MyFrame1):
             self.tc.WriteText("System ({timestamp}):\nNo results found.\n")
             self.tc.EndStyle()
       
-        # Scroll to the bottom
         if query_pos:
             self.tc.ShowPosition(query_pos)
 

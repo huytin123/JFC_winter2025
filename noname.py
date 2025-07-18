@@ -117,6 +117,15 @@ class MyFrame1(wx.Frame):
         heading_panel = wx.Panel(self)
         heading_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
+        vinsi_img = wx.Image("logo/vinsi1.png", wx.BITMAP_TYPE_PNG).Scale(50, 50, wx.IMAGE_QUALITY_HIGH)
+        logo_vinsi = wx.StaticBitmap(heading_panel, bitmap=wx.Bitmap(vinsi_img))
+
+        jfc_img = wx.Image("logo/jfc.png", wx.BITMAP_TYPE_PNG).Scale(50, 50, wx.IMAGE_QUALITY_HIGH)
+        logo_jfc = wx.StaticBitmap(heading_panel, bitmap=wx.Bitmap(jfc_img))
+
+        usyd_img = wx.Image("logo/usyd.png", wx.BITMAP_TYPE_PNG).Scale(50, 50, wx.IMAGE_QUALITY_HIGH)
+        logo_usyd = wx.StaticBitmap(heading_panel, bitmap=wx.Bitmap(usyd_img))
+
         heading = wx.StaticText(heading_panel, label="Query Results")
         heading_font = wx.Font(18, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "SF Pro Display")
         heading.SetFont(heading_font)
@@ -126,10 +135,14 @@ class MyFrame1(wx.Frame):
         self.btn_help.SetFont(sfpro_font)
 
         # Layout to align Help button to the right and push heading right
-        heading_sizer.AddStretchSpacer(prop=1)  # Left spacer to push content right
-        heading_sizer.Add(heading, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Center the heading vertically
-        heading_sizer.AddSpacer(300)  # Fixed spacer to push content further right
-        heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)  # Help button
+        heading_sizer.AddSpacer(20)
+        heading_sizer.Add(logo_vinsi, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        heading_sizer.Add(logo_usyd, 0, wx.ALIGN_CENTER_VERTICAL| wx.RIGHT, 10)
+        heading_sizer.Add(logo_jfc, 0, wx.ALIGN_CENTER_VERTICAL| wx.RIGHT, 10)
+        heading_sizer.AddSpacer(200) 
+        heading_sizer.Add(heading, 0, wx.ALIGN_CENTER_VERTICAL | wx.CENTER)
+        heading_sizer.AddSpacer(300)
+        heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)  # Help button
         heading_panel.SetSizer(heading_sizer)
 
         rightSizer.Add(heading_panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
