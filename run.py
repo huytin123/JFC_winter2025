@@ -93,6 +93,7 @@ class MyFrame(MyFrame1):
         attr.SetParagraphSpacingAfter(20)
         attr.SetLeftIndent(75, 0)
         attr.SetRightIndent(75)
+        attr.SetAlignment(wx.TEXT_ALIGNMENT_LEFT)
         self.tc.BeginStyle(attr)
         self.tc.WriteText(text)
         self.tc.EndStyle()
@@ -276,37 +277,53 @@ class MyFrame(MyFrame1):
     @override
     def query_search(self, event):
         if len(self.build) == 0:
-            self.write_to_tc("Please Load a Build Before Searching\n")
-            self.tc.ShowPosition(self.tc.GetLastPosition())
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))
+            # attr.SetParagraphSpacingBefore(20)
+            # attr.SetParagraphSpacingAfter(20)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(75)
+            self.tc.BeginStyle(attr)
+            self.tc.WriteText("Please Load a Build Before Searching\n")
+            self.tc.EndStyle()
             return
-        
+
         text = self.text_search.GetValue()
         if not text.strip():
             return  # Ignore empty queries
-        
-        # Display user query in chat format with timestamp, right-aligned, grey background
-        timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM (e.g., 09:49 AM)
+
+        # Reset style and ensure a clean paragraph break
+        self.tc.BeginStyle(wx.richtext.RichTextAttr())  # Reset to default
+        self.tc.Newline()
+        timestamp = datetime.now().strftime("%I:%M %p")
         self.tc.SetInsertionPointEnd()
+
         attr = wx.richtext.RichTextAttr()
-        attr.SetBackgroundColour(wx.Colour("#C0C0C0"))  # Light grey background for user
-        attr.SetTextColour(wx.Colour("#000000"))  # Black text
-        attr.SetParagraphSpacingBefore(10)
-        attr.SetParagraphSpacingAfter(10)
-        attr.SetLeftIndent(500, 0)  # Right-aligned with large left indent
-        attr.SetRightIndent(75)
+        attr.SetTextColour(wx.Colour("#000000"))
+        attr.SetAlignment(wx.TEXT_ALIGNMENT_RIGHT)      # Align bubble to the right
+        attr.SetParagraphSpacingBefore(30)
+
+        # Outer padding (from the widget edge)
+        attr.SetRightIndent(50)  # Push bubble away from right edge
+        attr.SetLeftIndent(150, 0)  # Push bubble to the right overall
+
+        padded_text = f"You ({timestamp}): {text}"
+
         self.tc.BeginStyle(attr)
-        self.tc.WriteText(f"You ({timestamp}): {text}\n")
+        self.tc.WriteText(padded_text)
+        self.tc.Newline()
         self.tc.EndStyle()
-        
-        # Clear the search input
+
+
+        # Clear input and force layout
         self.text_search.Clear()
-        
-        # Process query for each collection
+        self.tc.SetSize((800, 625)) 
+        self.tc.Layout() 
+
+        # Continue with query handling
         for i in range(len(self.build)):
             self.query_collection(text, self.num, self.collection[i])
-        
-        
-        #self.tc.ShowPosition()
 
     def rerank(self, data,question):
         try:
@@ -350,60 +367,57 @@ class MyFrame(MyFrame1):
 
 
     def query_collection(self, text, n, collection):
-        
         self.start_loading()
         data = collection.query(query_texts=text, n_results=n)
         data = self.rerank( data, text) #score, doc, metadata
       
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
         query_pos = self.tc.GetInsertionPoint()
-        if data[1] and len(data[1]) > 0:
+
+        self.tc.BeginStyle(wx.richtext.RichTextAttr())
+        
+        if data and len(data) > 0:
             for i, (score, doc, current_id, metadata) in enumerate(data):
-              # filename = data['metadatas'][0][idx]['Name']
-              # page = data['metadatas'][0][idx]['Page']
-              # para = data['metadatas'][0][idx]['Paragraph']
-              # content = data['documents'][0][idx]
-                filepath = metadata.get("Address", "")
+                filepath = metadata.get("Name", "")
                 page = metadata.get("Page", "")
                 content = doc
-                #filepath = os.path.abspath(filename)
+
                 self.tc.SetInsertionPointEnd()
                 attr = wx.richtext.RichTextAttr()
                 attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
                 attr.SetTextColour(wx.Colour("#000000"))
-                attr.SetParagraphSpacingBefore(10)
-                attr.SetParagraphSpacingAfter(10)
+                attr.SetParagraphSpacingBefore(10)  # Consistent spacing before
+                attr.SetParagraphSpacingAfter(10)   # Consistent spacing after
                 attr.SetLeftIndent(75, 0)
-                attr.SetRightIndent(500)
+                attr.SetRightIndent(20)
+                attr.SetAlignment(wx.TEXT_ALIGNMENT_LEFT)
                 self.tc.BeginStyle(attr)
 
-                # urlStyle = wx.richtext.RichTextAttr()
-                # urlStyle.SetTextColour(wx.BLUE)
-                # urlStyle.SetFontUnderlined(True)
+                self.tc.WriteText(f"System ({timestamp}):\n")
+                # Highlight "Result #{i+1}"
+                highlight_attr = wx.richtext.RichTextAttr()
+                highlight_attr.SetBackgroundColour(wx.Colour("#ADD8E6"))
+                highlight_attr.SetTextColour(wx.Colour("#000000"))
+                self.tc.BeginStyle(highlight_attr)
+                self.tc.WriteText(f"Result #{i+1}")
+                self.tc.EndStyle()
+                self.tc.WriteText(":\nFile: ")
 
-                # self.tc.WriteText("RichTextCtrl can also display URLs, such as this one: ")
-                # self.tc.BeginStyle(urlStyle)
-                # self.tc.BeginURL("http://wxPython.org/")
-                # self.tc.WriteText("The wxPython Web Site")
-                # self.tc.EndURL()
-                # self.tc.EndStyle()
-
-                self.tc.WriteText(f"System ({timestamp}):\nResult #{i+1}:\nFile: ")
+                # Style hyperlink
                 self.tc.BeginURL(filepath)
                 self.tc.BeginTextColour(wx.BLUE)
                 self.tc.BeginUnderline()
                 self.tc.WriteText(filepath)
                 self.tc.EndUnderline()
                 self.tc.EndTextColour()
-
                 self.tc.EndURL()
-                self.tc.WriteText(f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n")
+
+                self.tc.WriteText(
+                    f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40} \n \n"
+                )
                 self.tc.EndStyle()
-                #response += f"\nPage: {page}\nID: {current_id}\nScore: {score}\nContent: {content}\n{'-' * 40}\n"
-              
 
         else:
-            #response += "No results found.\n"
             self.tc.SetInsertionPointEnd()
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
@@ -411,11 +425,17 @@ class MyFrame(MyFrame1):
             attr.SetParagraphSpacingBefore(10)
             attr.SetParagraphSpacingAfter(10)
             attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(500)
+            attr.SetRightIndent(20)
+            attr.SetAlignment(wx.TEXT_ALIGNMENT_LEFT)
             self.tc.BeginStyle(attr)
-            self.tc.WriteText("System ({timestamp}):\nNo results found.\n")
+            self.tc.WriteText(f"System ({timestamp}):\nNo results found.")
             self.tc.EndStyle()
-      
+
+        # Add a final newline with consistent spacing to separate from future content
+        self.tc.BeginStyle(wx.richtext.RichTextAttr())
+        self.tc.Newline()
+        self.tc.EndStyle()
+
         if query_pos:
             self.tc.ShowPosition(query_pos)
 
