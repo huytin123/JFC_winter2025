@@ -260,7 +260,7 @@ class MyFrame(MyFrame1):
             if item not in current:
                 self.dvc.AppendItem([item, "Delete"])
                 
-                self.write_to_tc("Deleted: " + str(item) + "\n")
+                #self.write_to_tc("Deleted: " + str(item) + "\n")
 
 
         self.end_loading()
