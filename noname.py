@@ -87,7 +87,7 @@ class MyFrame1(wx.Frame):
 
         self.dvcBuild = wx.dataview.DataViewListCtrl(sidebarPanel, wx.ID_ANY, wx.DefaultPosition, wx.Size(260, 100), 0)
         self.dvcBuild.SetBackgroundColour(wx.Colour("#04547C"))
-        self.c3 = self.dvcBuild.AppendTextColumn("Build", wx.dataview.DATAVIEW_CELL_INERT, 80, wx.ALIGN_LEFT, 0)
+        self.c3 = self.dvcBuild.AppendTextColumn("Database", wx.dataview.DATAVIEW_CELL_INERT, 80, wx.ALIGN_LEFT, 0)
         self.c4 = self.dvcBuild.AppendTextColumn("Name", wx.dataview.DATAVIEW_CELL_INERT, 140, wx.ALIGN_LEFT, 0)
         self.c5 = self.dvcBuild.AppendTextColumn("✖", wx.dataview.DATAVIEW_CELL_INERT, 40, wx.ALIGN_CENTER, 0)
         sidebarBox.Add(self.dvcBuild, 1, wx.ALL, 10)
@@ -95,7 +95,7 @@ class MyFrame1(wx.Frame):
         # Button definitions with custom buttons
         self.btn_add = CustomButton(sidebarPanel, "Add PDF", wx.Size(150, 35))
         self.btn_add_folder = CustomButton(sidebarPanel, "Add Folder", wx.Size(150, 35))
-        self.btn_load = CustomButton(sidebarPanel, "Load Build", wx.Size(150, 35))
+        self.btn_load = CustomButton(sidebarPanel, "Load Database", wx.Size(150, 35))
         self.btn_refresh = CustomButton(sidebarPanel, "Refresh", wx.Size(150, 35))
 
         # Ensure buttons are not in another sizer before adding

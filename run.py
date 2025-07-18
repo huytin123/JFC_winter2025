@@ -38,7 +38,7 @@ class MyFrame(MyFrame1):
     def get_collection(self):
         collection = None
         if len(self.build) > 1:
-            dlg = wx.SingleChoiceDialog(self, "Choose Build", "Store PDF in Build: ", ["Build 1", "Build 2"])
+            dlg = wx.SingleChoiceDialog(self, "Choose Database", "Store PDF in Database: ", self.build)
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
 
@@ -157,7 +157,7 @@ class MyFrame(MyFrame1):
             return
         
         if len(self.build) == 0:
-            self.write_to_tc("Please Load a Build Before Adding PDFs\n")
+            self.write_to_tc("Please Load a Database Before Adding PDFs\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
             return
         
@@ -171,7 +171,6 @@ class MyFrame(MyFrame1):
 
         if pathnames == None:
             return
-        
        
         collection = self.get_collection()
         if collection == None:
@@ -286,7 +285,7 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             self.tc.BeginStyle(attr)
-            self.tc.WriteText("Please Load a Build Before Searching\n")
+            self.tc.WriteText("Please Load a Database Before Searching\n")
             self.tc.EndStyle()
             return
 
@@ -447,7 +446,7 @@ class MyFrame(MyFrame1):
     
     @override
     def load_build(self, event):       
-        with wx.DirDialog(self, "Select Directory to Create or Load Build", "./",
+        with wx.DirDialog(self, "Select Directory to Create or Load Database", "./",
                     wx.DD_DEFAULT_STYLE) as folder:
             
             if folder.ShowModal() == wx.ID_CANCEL:
@@ -455,7 +454,7 @@ class MyFrame(MyFrame1):
             
             pathname = folder.GetPath()
             if pathname in self.build:
-                self.write_to_tc("Build Already Loaded\n")
+                self.write_to_tc("Database Already Loaded\n")
                 self.tc.ShowPosition(self.tc.GetLastPosition())
                 return
 
@@ -483,9 +482,9 @@ class MyFrame(MyFrame1):
 
                 embedding_function=model
             ))
-            self.dvcBuild.AppendItem(["Build " + str(len(self.build)), pathname, "✗"])
+            self.dvcBuild.AppendItem(["Database " + str(len(self.build)), pathname, "✗"])
             
-            self.write_to_tc("Loaded or Created Build: " + str(pathname))
+            self.write_to_tc("Loaded or Created Database: " + str(pathname))
             self.end_loading()
             self.pdf_fetch(None)
 
