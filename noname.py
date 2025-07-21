@@ -25,6 +25,7 @@ class CustomButton(wx.Panel):
 
     def on_paint(self, event):
         dc = wx.PaintDC(self)
+        dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
         if not gc:
             return
