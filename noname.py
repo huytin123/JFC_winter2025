@@ -69,6 +69,7 @@ class MyFrame1(wx.Frame):
                           size=wx.Size(1188, 768), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetBackgroundColour("#FFFFFF")
+        self.SetDoubleBuffered(True)
         sfpro_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "SF Pro Display")
         self.SetFont(sfpro_font)
 
