@@ -512,7 +512,7 @@ class MyFrame(MyFrame1):
 
     def show_help(self, event):
         try: 
-            os.startfile(".\\User Manual")
+            os.startfile(".\\User Manual.pdf")
         except:
             self.write_to_tc("Can't Open or Find User Manual\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
