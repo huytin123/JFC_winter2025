@@ -318,7 +318,6 @@ class MyFrame(MyFrame1):
 
         # Clear input and force layout
         self.text_search.Clear()
-        self.tc.SetSize((800, 625)) 
         self.tc.Layout() 
 
         # Continue with query handling
