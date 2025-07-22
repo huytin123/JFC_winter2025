@@ -100,6 +100,11 @@ class MyFrame1(wx.Frame):
         self.btn_load = CustomButton(sidebarPanel, "Load Database", wx.Size(150, 35))
         self.btn_refresh = CustomButton(sidebarPanel, "Refresh", wx.Size(150, 35))
 
+        self.btn_add.SetBackgroundColour(wx.Colour("#04547C"))
+        self.btn_add_folder.SetBackgroundColour(wx.Colour("#04547C"))
+        self.btn_load.SetBackgroundColour(wx.Colour("#04547C"))
+        self.btn_refresh.SetBackgroundColour(wx.Colour("#04547C"))
+        
         # Ensure buttons are not in another sizer before adding
         for btn in [self.btn_add, self.btn_add_folder, self.btn_load, self.btn_refresh]:
             btn.Reparent(sidebarPanel)  # Re-parent to ensure clean slate
@@ -134,6 +139,7 @@ class MyFrame1(wx.Frame):
         heading.SetForegroundColour("#04547C")  # Dark blue text
 
         self.btn_help = CustomButton(heading_panel, "Help", wx.Size(60, 30), bg_color=wx.Colour("#564D7C"))
+        self.btn_help.SetBackgroundColour("#FFFFFF")
         self.btn_help.SetFont(sfpro_font)
 
         # Layout to align Help button to the right and push heading right
@@ -141,7 +147,7 @@ class MyFrame1(wx.Frame):
         heading_sizer.Add(logo_vinsi, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
         heading_sizer.Add(logo_usyd, 0, wx.ALIGN_CENTER_VERTICAL| wx.RIGHT, 10)
         heading_sizer.Add(logo_jfc, 0, wx.ALIGN_CENTER_VERTICAL| wx.RIGHT, 10)
-        heading_sizer.AddSpacer(200) 
+        heading_sizer.AddSpacer(150) 
         heading_sizer.Add(heading, 0, wx.ALIGN_CENTER_VERTICAL | wx.CENTER)
         heading_sizer.AddSpacer(300)
         heading_sizer.Add(self.btn_help, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)  # Help button
@@ -180,6 +186,10 @@ class MyFrame1(wx.Frame):
         self.btn_settings = CustomButton(self, "⚙", wx.Size(40, 30))
         self.btn_clear = CustomButton(self, "X", wx.Size(40, 30))
         self.btn_settings.SetFont(sfpro_font)
+
+        self.btn_search.SetBackgroundColour("#FFFFFF")
+        self.btn_settings.SetBackgroundColour("#FFFFFF")
+        self.btn_clear.SetBackgroundColour("#FFFFFF")
 
         # Push query box and buttons to the right
         bottomControls.AddStretchSpacer(prop=2)  # Increased left spacer to push right
