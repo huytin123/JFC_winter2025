@@ -345,6 +345,8 @@ class MyFrame(MyFrame1):
         # Continue with query handling
         first =True
         start_time = time.time()
+        
+        self.start_loading()
         for i in range(len(self.build)):
             if first == True:
                 result_dict = self.query_collection(text, self.num_search, self.collection[i])
@@ -482,7 +484,6 @@ class MyFrame(MyFrame1):
         self.tc.EndStyle()
 
     def query_collection(self, text, n, collection):
-        self.start_loading()
         data = collection.query(query_texts=text, n_results=n)
         #data = self.rerank( data, text) #score, doc, metadata
         return data
