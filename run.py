@@ -209,9 +209,11 @@ class MyFrame(MyFrame1):
             attr.SetRightIndent(75)
             wx.CallAfter(self.tc.BeginStyle,attr)
 
+            self.tc.SetInsertionPointEnd()
+
             with self.lock:
                 self.to_be_processed -= 1
-                wx.CallAfter(self.tc.SetInsertionPointEnd())
+                
                 wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
                 wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
 
