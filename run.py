@@ -4,6 +4,7 @@ import platform
 import signal
 import subprocess
 import threading
+import time
 from sentence_transformers import CrossEncoder
 import re
 import wx
@@ -29,7 +30,8 @@ class MyFrame(MyFrame1):
         self.build = []
         self.collection = []
         self.load_build(None)
-        self.num = 3
+        self.num_result = 10
+        self.num_search = 100
         self.to_be_processed=0
         self.lock = threading.Lock()
         self.thread_list =[]
@@ -131,6 +133,7 @@ class MyFrame(MyFrame1):
 
             with self.lock:
                 self.to_be_processed -= 1
+                wx.CallAfter(self.tc.SetInsertionPointEnd())
                 wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
                 wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
 
@@ -151,6 +154,7 @@ class MyFrame(MyFrame1):
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
 
+            wx.CallAfter(self.tc.SetInsertionPointEnd())
             wx.CallAfter(self.tc.BeginStyle,attr)
             wx.CallAfter(self.tc.WriteText,"Document " + name + " Already in Database\n")
             wx.CallAfter(self.tc.EndStyle)
@@ -290,7 +294,7 @@ class MyFrame(MyFrame1):
                 result_dict[key][0].extend(data_dict[key][0])
         
         return result_dict
-    
+        
     @override
     def query_search(self, event):
         if len(self.build) == 0:
@@ -340,16 +344,24 @@ class MyFrame(MyFrame1):
         result_dict= {}
         # Continue with query handling
         first =True
+        start_time = time.time()
         for i in range(len(self.build)):
             if first == True:
-                result_dict = self.query_collection(text, self.num, self.collection[i])
+                result_dict = self.query_collection(text, self.num_search, self.collection[i])
                 first =False
             else:
-                result_dict = self.merge_result_dicts ( result_dict,self.query_collection(text, self.num, self.collection[i]) )
+                result_dict = self.merge_result_dicts ( result_dict,self.query_collection(text, self.num_search, self.collection[i]) )
 
+        print ("result", time.time() - start_time)
+
+        rerank  = time.time()
         result_dict = self.rerank(result_dict, text)
+        print ("rerank", time.time() - rerank)
 
+        print_time =time.time()
+        result_dict = result_dict[0: self.num_result]
         self.print_result(result_dict)
+        print ("print", time.time() - print_time)
 
         if query_pos:
             self.tc.ShowPosition(query_pos)
@@ -358,21 +370,33 @@ class MyFrame(MyFrame1):
         try:
             cross_encoder = CrossEncoder(model_name_or_path=self.rerank_name)
         except Exception as e:
-            cross_encoder = CrossEncoder(model_name_or_path=self.rerank_name, local_files_only=True)
-        
-        for i in data:
-            retrieved_docs = data['documents'][0]
-            retrieved_metadata = data['metadatas'][0]
-            retrieved_id =data['ids'][0]
-            pairs = [[question, doc] for doc in retrieved_docs]
-            scores = cross_encoder.predict(pairs)
-            sorted_entries = sorted(
-                zip(scores, retrieved_docs, retrieved_id, retrieved_metadata),
-                key=lambda x: x[0],
-                reverse=True
-            )
+            cross_encoder = CrossEncoder(model_name_or_path=self.rerank_name, local_files_only=True, trust_remote_code=True)
+
+        retrieved_docs = data['documents'][0]
+        retrieved_metadata = data['metadatas'][0]
+        retrieved_id =data['ids'][0]
+        pairs = [[question, doc] for doc in retrieved_docs]
+        scores = cross_encoder.predict(pairs)
+        sorted_entries = sorted(
+            zip(scores, retrieved_docs, retrieved_id, retrieved_metadata),
+            key=lambda x: x[0],
+            reverse=True
+        )
         return sorted_entries
-    
+
+    def rerank1 (self, data, question):
+        retrieved_docs = data['documents'][0]
+        retrieved_metadata = data['metadatas'][0]
+        retrieved_id =data['ids'][0]
+        scores= list(range (0, len(retrieved_id)))
+        sorted_entries = sorted(
+            zip(scores, retrieved_docs, retrieved_id, retrieved_metadata),
+            key=lambda x: x[0],
+            reverse=False
+        )
+
+        return sorted_entries
+
     @override
     def on_url_click(self, event):
         filepath = event.GetString()
@@ -495,9 +519,9 @@ class MyFrame(MyFrame1):
             model = None
             try:
 
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name,trust_remote_code= True)
             except Exception as e:
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True, trust_remote_code= True )
             
             self.build.append(pathname)
             self.collection.append(chroma_client.get_or_create_collection(
@@ -526,12 +550,12 @@ class MyFrame(MyFrame1):
             self.pdf_fetch(None)
 
     def open_settings(self, event):
-        dlg = wx.NumberEntryDialog(self, "Query", "Number of Results = ", "Settings", self.num, 1, 10)
+        dlg = wx.NumberEntryDialog(self, "Query", "Number of Results = ", "Settings", self.num_result, 1, 100)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
         result = dlg.GetValue()
         dlg.Destroy()
-        self.num = result
+        self.num_result = result
 
     def show_help(self, event):
         try: 
@@ -604,6 +628,7 @@ if __name__ == '__main__':
         rerank_name = config['Settings']['rerank']
     except Exception as e:
         # default settings
+        print(e)
         collection_name = "my_collection"
         model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
         rerank_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
