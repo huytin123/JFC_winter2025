@@ -579,7 +579,7 @@ def extract_text_chunks(pdf_path):
 
 if __name__ == '__main__':
     done = False
-    #here is the animation
+    
     def animate():
         symbols = ['-', '\\', '|', '/']
         i = 0
