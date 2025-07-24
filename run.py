@@ -100,14 +100,7 @@ class MyFrame(MyFrame1):
         self.tc.BeginStyle(attr)
         self.tc.WriteText(text)
         self.tc.EndStyle()
-
-    def create_executors (self, pathnames, collection):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            self.executor = executor  
-
-            for pathname in pathnames:
-                executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
-
+        
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
         name = os.path.basename(pathname)
         docs, ids, metas = extract_text_chunks(pathname)
