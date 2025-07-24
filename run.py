@@ -291,6 +291,20 @@ class MyFrame(MyFrame1):
             self.tc.EndStyle()
             return
 
+        if self.dvc.GetItemCount() == 0:
+            attr = wx.richtext.RichTextAttr()
+            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+            attr.SetTextColour(wx.Colour("#000000"))
+            # attr.SetParagraphSpacingBefore(20)
+            # attr.SetParagraphSpacingAfter(20)
+            attr.SetLeftIndent(75, 0)
+            attr.SetRightIndent(75)
+            self.tc.BeginStyle(attr)
+            self.tc.WriteText("No PDFs in Database\n")
+            self.tc.WriteText("Please Refresh or Added PDFs to Database\n")
+            self.tc.EndStyle()
+            return
+
         text = self.text_search.GetValue()
         if not text.strip():
             return  # Ignore empty queries
