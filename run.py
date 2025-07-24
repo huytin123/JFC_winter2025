@@ -25,15 +25,95 @@ class MyFrame(MyFrame1):
         super().__init__(None)
         self.collection_name = collection_name
         self.model_name = model_name
-        self.rerank_name =rerank_name
+        self.rerank_name = rerank_name
         self.build = []
         self.collection = []
-        self.load_build(None)
         self.num = 3
-        self.to_be_processed=0
-        self.lock = threading.Lock()
-        self.thread_list =[]
+        self.to_be_processed = 0
+        self.lock = threading.Lock()  # Move lock initialization before load_build
+        self.thread_list = []
         self.executor = None
+        self.load_build(None)  # Call load_build after lock is defined
+
+    def rename_uuid_folder(self, db_pathname):
+        """Rename any UUID-named folder to bin_files in the specified directory."""
+        import re
+        import shutil
+        uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+        new_folder_path = os.path.join(db_pathname, "bin_files")
+        
+        try:
+            with self.lock:  # Now safe to use lock
+                for item in os.listdir(db_pathname):
+                    item_path = os.path.join(db_pathname, item)
+                    if os.path.isdir(item_path) and re.match(uuid_pattern, item):
+                        if os.path.exists(new_folder_path):
+                            # If bin_files exists, remove the new UUID folder
+                            shutil.rmtree(item_path)
+                            self.write_to_tc(f"Removed duplicate UUID folder: {item}\n")
+                        else:
+                            # Rename UUID folder to bin_files
+                            os.rename(item_path, new_folder_path)
+                            self.write_to_tc(f"Renamed UUID folder {item} to bin_files\n")
+        except OSError as e:
+            self.write_to_tc(f"Error renaming UUID folder: {e}\n")
+
+    @override
+    def load_build(self, event):       
+        with wx.DirDialog(self, "Select Directory to Create or Load Database", "./",
+                    wx.DD_DEFAULT_STYLE) as folder:
+            
+            if folder.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            pathname = folder.GetPath()
+            # Create a subdirectory with "db_" prefix
+            db_pathname = os.path.join(pathname, "JFCdb_" + self.collection_name)
+            
+            if db_pathname in self.build:
+                self.write_to_tc("Database Already Loaded\n")
+                self.tc.ShowPosition(self.tc.GetLastPosition())
+                return
+
+            self.start_loading()
+            
+            # Ensure the db_ subdirectory exists
+            os.makedirs(db_pathname, exist_ok=True)
+            
+            # Initialize PersistentClient with the db_ subdirectory
+            chroma_client = chromadb.PersistentClient(path=db_pathname)
+            
+            '''
+            try:
+                chroma_client.delete_collection(name="my_collection")
+                #collection = chroma_client.get_or_create_collection(name="my_collection")
+            except Exception as e:
+                pass
+            '''
+            model = None
+            try:
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
+            except Exception as e:
+                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
+            
+            # Create or load the collection
+            self.build.append(db_pathname)
+            collection = chroma_client.get_or_create_collection(
+                name=self.collection_name,
+                embedding_function=model
+            )
+            self.collection.append(collection)
+            
+            # Rename the UUID folder to "bin_files"
+            self.rename_uuid_folder(db_pathname)
+            
+            self.dvcBuild.AppendItem(["Database " + str(len(self.build)), db_pathname, "✗"])
+            
+            self.write_to_tc("Loaded or Created Database: " + str(db_pathname) + " with collection files in: " + os.path.join(db_pathname, "bin_files"))
+            self.end_loading()
+            self.pdf_fetch(None)
+
+    
     
     def get_collection(self):
         collection = None
@@ -117,6 +197,13 @@ class MyFrame(MyFrame1):
                     ids=ids,
                     metadatas=metas,
                 )
+            
+            # Get the db_pathname for this collection
+            collection_index = self.collection.index(collection)
+            db_pathname = self.build[collection_index]
+            
+            # Rename any new UUID folder created during add
+            self.rename_uuid_folder(db_pathname)
 
             wx.CallAfter(self.dvc.AppendItem, [name, "✗"])
 
@@ -127,14 +214,14 @@ class MyFrame(MyFrame1):
             attr.SetParagraphSpacingAfter(20)
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
-            wx.CallAfter(self.tc.BeginStyle,attr)
+            wx.CallAfter(self.tc.BeginStyle, attr)
 
             with self.lock:
                 self.to_be_processed -= 1
                 wx.CallAfter(self.tc.WriteText, "Added: " + str(name) + "\n")
-                wx.CallAfter(self.tc.WriteText,"Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
+                wx.CallAfter(self.tc.WriteText, "Processed: " + str(pathnum - self.to_be_processed) + "/" + str(pathnum) + "\n")
 
-            if self.to_be_processed ==0:
+            if self.to_be_processed == 0:
                 wx.CallAfter(self.end_loading)
 
             wx.CallAfter(self.tc.EndStyle)
@@ -142,18 +229,17 @@ class MyFrame(MyFrame1):
         else:
             with self.lock:
                 self.to_be_processed -= 1
-                #print("Processed:", self.to_be_processed)
-            attr = wx.richtext.RichTextAttr()
-            attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
-            attr.SetTextColour(wx.Colour("#000000"))  # Black text
-            attr.SetParagraphSpacingBefore(20)
-            attr.SetParagraphSpacingAfter(20)
-            attr.SetLeftIndent(75, 0)
-            attr.SetRightIndent(75)
+                attr = wx.richtext.RichTextAttr()
+                attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
+                attr.SetTextColour(wx.Colour("#000000"))  # Black text
+                attr.SetParagraphSpacingBefore(20)
+                attr.SetParagraphSpacingAfter(20)
+                attr.SetLeftIndent(75, 0)
+                attr.SetRightIndent(75)
 
-            wx.CallAfter(self.tc.BeginStyle,attr)
-            wx.CallAfter(self.tc.WriteText,"Document " + name + " Already in Database\n")
-            wx.CallAfter(self.tc.EndStyle)
+                wx.CallAfter(self.tc.BeginStyle, attr)
+                wx.CallAfter(self.tc.WriteText, "Document " + name + " Already in Database\n")
+                wx.CallAfter(self.tc.EndStyle)
 
 
     @override
@@ -451,49 +537,7 @@ class MyFrame(MyFrame1):
     def clear_tc(self, event):
         self.tc.Clear()
     
-    @override
-    def load_build(self, event):       
-        with wx.DirDialog(self, "Select Directory to Create or Load Database", "./",
-                    wx.DD_DEFAULT_STYLE) as folder:
-            
-            if folder.ShowModal() == wx.ID_CANCEL:
-                return
-            
-            pathname = folder.GetPath()
-            if pathname in self.build:
-                self.write_to_tc("Database Already Loaded\n")
-                self.tc.ShowPosition(self.tc.GetLastPosition())
-                return
-
-            self.start_loading()
-            
-            chroma_client = chromadb.PersistentClient(path=pathname)
-            
-            '''
-            try:
-                chroma_client.delete_collection(name="my_collection")
-                #collection = chroma_client.get_or_create_collection(name="my_collection")
-            except Exception as e:
-                pass
-            '''
-            model = None
-            try:
-
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
-            except Exception as e:
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
-            
-            self.build.append(pathname)
-            self.collection.append(chroma_client.get_or_create_collection(
-                name=self.collection_name,
-
-                embedding_function=model
-            ))
-            self.dvcBuild.AppendItem(["Database " + str(len(self.build)), pathname, "✗"])
-            
-            self.write_to_tc("Loaded or Created Database: " + str(pathname))
-            self.end_loading()
-            self.pdf_fetch(None)
+    
 
     @override
     def delete_build(self, event):
