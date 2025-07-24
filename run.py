@@ -1,4 +1,3 @@
-
 from concurrent.futures import ThreadPoolExecutor
 import platform
 import signal
@@ -19,6 +18,8 @@ from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunct
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import configparser
 
+import time
+import sys
 
 class MyFrame(MyFrame1):
     def __init__(self, collection_name, model_name, rerank_name):
@@ -80,12 +81,11 @@ class MyFrame(MyFrame1):
         return pathnames
 
     def create_executors (self, pathnames, collection):
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             self.executor = executor  
 
             for pathname in pathnames:
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
-            
     def write_to_tc(self, text):
         self.tc.SetInsertionPointEnd()
         attr = wx.richtext.RichTextAttr()
@@ -100,13 +100,6 @@ class MyFrame(MyFrame1):
         self.tc.WriteText(text)
         self.tc.EndStyle()
 
-    def create_executors (self, pathnames, collection):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            self.executor = executor  
-
-            for pathname in pathnames:
-                executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
-        
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
         name = os.path.basename(pathname)
         docs, ids, metas = extract_text_chunks(pathname)
@@ -202,7 +195,7 @@ class MyFrame(MyFrame1):
     def close_threads(self, event):
 
         if self.executor:
-            self.executor.shutdown(wait=True,cancel_futures=True)
+            self.executor.shutdown(wait=True)
 
         for t in self.thread_list:
             if t.is_alive():
@@ -577,6 +570,22 @@ def extract_text_chunks(pdf_path):
 
 
 if __name__ == '__main__':
+    done = False
+
+    def animate():
+        symbols = ['-', '\\', '|', '/']
+        i = 0
+        while not done:
+            sys.stdout.write('\rLoading ' + symbols[i % len(symbols)])
+            sys.stdout.flush()
+            time.sleep(0.1)
+            i += 1
+            
+        sys.stdout.write('\rDone!     ')
+
+    t = threading.Thread(target=animate)
+    t.start()
+    
     config = configparser.ConfigParser()
 
     collection_name = None
@@ -595,4 +604,5 @@ if __name__ == '__main__':
     app = wx.App(False)
     frame = MyFrame(collection_name, model_name, rerank_name)
     frame.Show()
+    done = True
     app.MainLoop()
