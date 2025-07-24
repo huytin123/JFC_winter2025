@@ -81,11 +81,12 @@ class MyFrame(MyFrame1):
         return pathnames
 
     def create_executors (self, pathnames, collection):
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=1) as executor:
             self.executor = executor  
 
             for pathname in pathnames:
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
+
     def write_to_tc(self, text):
         self.tc.SetInsertionPointEnd()
         attr = wx.richtext.RichTextAttr()
@@ -99,6 +100,13 @@ class MyFrame(MyFrame1):
         self.tc.BeginStyle(attr)
         self.tc.WriteText(text)
         self.tc.EndStyle()
+
+    def create_executors (self, pathnames, collection):
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            self.executor = executor  
+
+            for pathname in pathnames:
+                executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
 
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
         name = os.path.basename(pathname)
@@ -195,7 +203,7 @@ class MyFrame(MyFrame1):
     def close_threads(self, event):
 
         if self.executor:
-            self.executor.shutdown(wait=True)
+            self.executor.shutdown(wait=True,cancel_futures=True)
 
         for t in self.thread_list:
             if t.is_alive():
@@ -571,7 +579,7 @@ def extract_text_chunks(pdf_path):
 
 if __name__ == '__main__':
     done = False
-
+    
     def animate():
         symbols = ['-', '\\', '|', '/']
         i = 0
