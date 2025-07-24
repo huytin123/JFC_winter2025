@@ -281,7 +281,16 @@ class MyFrame(MyFrame1):
         self.write_to_tc("Files in Database: " + str(names) + "\n")
         self.tc.ShowPosition(self.tc.GetLastPosition())
         return names
+
+    def merge_result_dicts(self, data_dict, result_dict):
+        keys_to_merge = ['documents', 'ids', 'metadatas', 'distances']
         
+        for key in keys_to_merge:
+            if key in data_dict and data_dict[key]:
+                result_dict[key][0].extend(data_dict[key][0])
+        
+        return result_dict
+    
     @override
     def query_search(self, event):
         if len(self.build) == 0:
@@ -316,6 +325,7 @@ class MyFrame(MyFrame1):
         attr.SetRightIndent(50)  # Push bubble away from right edge
         attr.SetLeftIndent(150, 0)  # Push bubble to the right overall
 
+        query_pos = self.tc.GetInsertionPoint()
         padded_text = f"You ({timestamp}): {text}"
 
         self.tc.BeginStyle(attr)
@@ -327,10 +337,22 @@ class MyFrame(MyFrame1):
         # Clear input and force layout
         self.text_search.Clear()
         self.tc.Layout() 
-
+        result_dict= {}
         # Continue with query handling
+        first =True
         for i in range(len(self.build)):
-            self.query_collection(text, self.num, self.collection[i])
+            if first == True:
+                result_dict = self.query_collection(text, self.num, self.collection[i])
+                first =False
+            else:
+                result_dict = self.merge_result_dicts ( result_dict,self.query_collection(text, self.num, self.collection[i]) )
+
+        result_dict = self.rerank(result_dict, text)
+
+        self.print_result(result_dict)
+
+        if query_pos:
+            self.tc.ShowPosition(query_pos)
 
     def rerank(self, data,question):
         try:
@@ -371,18 +393,9 @@ class MyFrame(MyFrame1):
         else:
             wx.MessageBox(f"File not found:\n{filepath}", "Error", wx.ICON_ERROR)
 
-
-
-    def query_collection(self, text, n, collection):
-        self.start_loading()
-        data = collection.query(query_texts=text, n_results=n)
-        data = self.rerank( data, text) #score, doc, metadata
-      
+    def print_result (self, data):
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
-        query_pos = self.tc.GetInsertionPoint()
-
         self.tc.BeginStyle(wx.richtext.RichTextAttr())
-        
         if data and len(data) > 0:
             for i, (score, doc, current_id, metadata) in enumerate(data):
                 filepath = metadata.get("Address", "")
@@ -444,8 +457,11 @@ class MyFrame(MyFrame1):
         self.tc.Newline()
         self.tc.EndStyle()
 
-        if query_pos:
-            self.tc.ShowPosition(query_pos)
+    def query_collection(self, text, n, collection):
+        self.start_loading()
+        data = collection.query(query_texts=text, n_results=n)
+        #data = self.rerank( data, text) #score, doc, metadata
+        return data
 
     @override
     def clear_tc(self, event):
