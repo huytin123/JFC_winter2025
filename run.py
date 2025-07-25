@@ -436,16 +436,9 @@ class MyFrame(MyFrame1):
             else:
                 result_dict = self.merge_result_dicts ( result_dict,self.query_collection(text, self.num_search, self.collection[i]) )
 
-        print ("result", time.time() - start_time)
-
-        rerank  = time.time()
         result_dict = self.rerank(result_dict, text)
-        print ("rerank", time.time() - rerank)
-
-        print_time =time.time()
         result_dict = result_dict[0: self.num_result]
         self.print_result(result_dict)
-        print ("print", time.time() - print_time)
 
         if query_pos:
             self.tc.ShowPosition(query_pos)
@@ -693,7 +686,7 @@ if __name__ == '__main__':
         model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
         rerank_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
         max_search = 100
-    print(max_search)
+
     app = wx.App(False)
     frame = MyFrame(collection_name, model_name, rerank_name, max_search)
     frame.Show()
