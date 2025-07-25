@@ -23,7 +23,7 @@ import time
 import sys
 
 class MyFrame(MyFrame1):
-    def __init__(self, collection_name, model_name, rerank_name):
+    def __init__(self, collection_name, model_name, rerank_name, max_search):
         super().__init__(None)
         self.collection_name = collection_name
         self.model_name = model_name
@@ -31,35 +31,12 @@ class MyFrame(MyFrame1):
         self.build = []
         self.collection = []
         self.num_result = 10
-        self.num_search = 100
+        self.num_search = max_search
         self.to_be_processed = 0
         self.lock = threading.Lock()  
         self.thread_list = []
         self.executor = None
         self.load_build(None)
-
-    def rename_uuid_folder(self, db_pathname):
-        """Rename any UUID-named folder to bin_files in the specified directory."""
-        import re
-        import shutil
-        uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-        new_folder_path = os.path.join(db_pathname, "bin_files")
-        
-        try:
-            with self.lock:  # Now safe to use lock
-                for item in os.listdir(db_pathname):
-                    item_path = os.path.join(db_pathname, item)
-                    if os.path.isdir(item_path) and re.match(uuid_pattern, item):
-                        if os.path.exists(new_folder_path):
-                            # If bin_files exists, remove the new UUID folder
-                            shutil.rmtree(item_path)
-                            self.write_to_tc(f"Removed duplicate UUID folder: {item}\n")
-                        else:
-                            # Rename UUID folder to bin_files
-                            os.rename(item_path, new_folder_path)
-                            self.write_to_tc(f"Renamed UUID folder {item} to bin_files\n")
-        except OSError as e:
-            self.write_to_tc(f"Error renaming UUID folder: {e}\n")
 
     @override
     def load_build(self, event):       
@@ -93,22 +70,36 @@ class MyFrame(MyFrame1):
             except Exception as e:
                 pass
             '''
-            model = None
-            try:
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
-            except Exception as e:
-                model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
-            
             # Create or load the collection
+            collection = None
+            try:            
+                collection = chroma_client.get_collection(
+                    name=self.collection_name
+                )
+                if collection.metadata["Model"] != self.model_name:
+                    self.write_to_tc("Collection has been embedding with '" + collection.metadata["Model"] + "' instead of '" + self.model_name + "'\n")
+                    return
+                
+            except Exception as e:
+                model = None
+                try:
+                    model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
+                except Exception as e:
+                    model = SentenceTransformerEmbeddingFunction(model_name=self.model_name, local_files_only=True)
+                
+                collection = chroma_client.create_collection(
+                    name=self.collection_name,
+                    embedding_function=model,
+                    metadata={"Model": self.model_name},
+                    configuration={
+                        "hnsw": {
+                            "space": "cosine",
+                        }
+                    }
+                )
+
             self.build.append(db_pathname)
-            collection = chroma_client.get_or_create_collection(
-                name=self.collection_name,
-                embedding_function=model
-            )
             self.collection.append(collection)
-            
-            # Rename the UUID folder to "bin_files"
-            self.rename_uuid_folder(db_pathname)
             
             self.dvcBuild.AppendItem(["Database " + str(len(self.build)), db_pathname, "✗"])
             
@@ -194,9 +185,6 @@ class MyFrame(MyFrame1):
             
             collection_index = self.collection.index(collection)
             db_pathname = self.build[collection_index]
-            
-            # Rename any new UUID folder created during add
-            self.rename_uuid_folder(db_pathname)
 
             wx.CallAfter(self.dvc.AppendItem, [name, "✗"])
 
@@ -690,20 +678,24 @@ if __name__ == '__main__':
 
     collection_name = None
     model_name = None
+    rerank_name = None
+    max_search = 0
     try:
         config.read('config.ini')
         collection_name = config['Settings']['name']
         model_name = config['Settings']['model']
         rerank_name = config['Settings']['rerank']
+        max_search = int(config['Settings']['search'])
     except Exception as e:
         # default settings
         print(e)
         collection_name = "my_collection"
         model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
         rerank_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
-
+        max_search = 100
+    print(max_search)
     app = wx.App(False)
-    frame = MyFrame(collection_name, model_name, rerank_name)
+    frame = MyFrame(collection_name, model_name, rerank_name, max_search)
     frame.Show()
     done = True
     app.MainLoop()
