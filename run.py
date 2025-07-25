@@ -76,9 +76,14 @@ class MyFrame(MyFrame1):
                 collection = chroma_client.get_collection(
                     name=self.collection_name
                 )
+                if collection.metadata is None:
+                    self.write_to_tc("Collection uses old version without metadata\n")
+                    return
+                
                 if collection.metadata["Model"] != self.model_name:
                     self.write_to_tc("Collection has been embedding with '" + collection.metadata["Model"] + "' instead of '" + self.model_name + "'\n")
                     return
+                    
                 
             except Exception as e:
                 model = None
