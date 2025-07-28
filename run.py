@@ -38,6 +38,7 @@ class MyFrame(MyFrame1):
         self.executor = None
         self.load_build(None)
 
+    # loading database into program
     @override
     def load_build(self, event):       
         with wx.DirDialog(self, "Select Directory to Create or Load Database", "./",
@@ -63,13 +64,6 @@ class MyFrame(MyFrame1):
             # Initialize PersistentClient with the db_ subdirectory
             chroma_client = chromadb.PersistentClient(path=db_pathname)
             
-            '''
-            try:
-                chroma_client.delete_collection(name="my_collection")
-                #collection = chroma_client.get_or_create_collection(name="my_collection")
-            except Exception as e:
-                pass
-            '''
             # Create or load the collection
             collection = None
             try:            
@@ -86,6 +80,7 @@ class MyFrame(MyFrame1):
                     
                 
             except Exception as e:
+                # checking model for updates if online
                 model = None
                 try:
                     model = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
@@ -111,7 +106,8 @@ class MyFrame(MyFrame1):
             self.write_to_tc("Loaded or Created Database: " + str(db_pathname) + " with collection files in: " + os.path.join(db_pathname, "bin_files"))
             self.end_loading()
             self.pdf_fetch(None)
-    
+
+    # dialog for selecting when database is stored
     def get_collection(self):
         collection = None
         if len(self.build) > 1:
@@ -125,6 +121,7 @@ class MyFrame(MyFrame1):
 
         return collection
 
+    # dialog for selecting all PDFs in folder
     def add_folders (self):
         pathnames = []
         with wx.DirDialog(self, "Select a folder",
@@ -143,7 +140,8 @@ class MyFrame(MyFrame1):
                         pathnames.append(full_path)
 
         return pathnames
-    
+
+    # dialog for selecting PDFs
     def add_files (self):
         pathnames = []
         with wx.FileDialog(self, "Open PDF Files", wildcard="PDF files (*.pdf)|*.pdf",
@@ -156,6 +154,7 @@ class MyFrame(MyFrame1):
             
         return pathnames
 
+    # multithreading for PDF processing
     def create_executors (self, pathnames, collection):
         with ThreadPoolExecutor(max_workers=1) as executor:
             self.executor = executor  
@@ -163,6 +162,7 @@ class MyFrame(MyFrame1):
             for pathname in pathnames:
                 executor.submit(self.put_pdf_collections, pathname, collection, len(pathnames))
 
+    # writing to search area
     def write_to_tc(self, text):
         self.tc.SetInsertionPointEnd()
         attr = wx.richtext.RichTextAttr()
@@ -176,7 +176,8 @@ class MyFrame(MyFrame1):
         self.tc.BeginStyle(attr)
         self.tc.WriteText(text)
         self.tc.EndStyle()
-        
+
+    # inserting PDF into collection
     def put_pdf_collections(self, pathname, collection, pathnum): #in thread
         name = os.path.basename(pathname)
         docs, ids, metas = extract_text_chunks(pathname)
@@ -232,7 +233,7 @@ class MyFrame(MyFrame1):
             wx.CallAfter(self.tc.WriteText,"Document " + name + " Already in Database\n")
             wx.CallAfter(self.tc.EndStyle)
 
-
+    # handles adding PDF/folder button to add selected PDFs
     @override
     def pdf_add( self, event ):
 
@@ -268,16 +269,16 @@ class MyFrame(MyFrame1):
         self.thread_list.append (thread)
         thread.start()
 
-
+    # checks one array is subset of another
     def isSubset(self, a, b):
         for i in range(len(b)):
             if not b[i] in a:
                 return False
         return True
-    
+
+    # closing threads
     @override
     def close_threads(self, event):
-
         if self.executor:
             self.executor.shutdown(wait=True,cancel_futures=True)
 
@@ -286,6 +287,7 @@ class MyFrame(MyFrame1):
                 t.join()
         self.Destroy()
 
+    # handles deleting PDF from collection
     @override
     def pdf_delete(self, event):
         row = self.dvc.ItemToRow(event.GetItem())
@@ -306,6 +308,7 @@ class MyFrame(MyFrame1):
             if len(delete_id) > 0:
                 self.collection[i].delete(delete_id)
 
+    # finds collection ID with specific 
     def find_data(self, data, name):
         delete_id = []
         for idx in range(len(data["ids"])):
@@ -315,6 +318,7 @@ class MyFrame(MyFrame1):
                 delete_id.append(current_id)
         return delete_id
 
+    # handles refreshing menu to check PDF in collection
     @override
     def pdf_fetch(self, event):
         self.start_loading()
@@ -343,12 +347,10 @@ class MyFrame(MyFrame1):
         for item in names:
             if item not in current:
                 self.dvc.AppendItem([item, "✗"])
-                
-                #self.write_to_tc("Deleted: " + str(item) + "\n")
-
 
         self.end_loading()
 
+    # checks names of PDF in collection
     def refresh_meta(self, meta):
         names = []
         for m in meta:
@@ -359,6 +361,7 @@ class MyFrame(MyFrame1):
         self.tc.ShowPosition(self.tc.GetLastPosition())
         return names
 
+    # merges dictionaries 
     def merge_result_dicts(self, data_dict, result_dict):
         keys_to_merge = ['documents', 'ids', 'metadatas', 'distances']
         
@@ -367,15 +370,14 @@ class MyFrame(MyFrame1):
                 result_dict[key][0].extend(data_dict[key][0])
         
         return result_dict
-        
+
+    # handles query the program with user input
     @override
     def query_search(self, event):
         if len(self.build) == 0:
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))
-            # attr.SetParagraphSpacingBefore(20)
-            # attr.SetParagraphSpacingAfter(20)
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             self.tc.BeginStyle(attr)
@@ -387,8 +389,6 @@ class MyFrame(MyFrame1):
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))
-            # attr.SetParagraphSpacingBefore(20)
-            # attr.SetParagraphSpacingAfter(20)
             attr.SetLeftIndent(75, 0)
             attr.SetRightIndent(75)
             self.tc.BeginStyle(attr)
@@ -448,6 +448,7 @@ class MyFrame(MyFrame1):
         if query_pos:
             self.tc.ShowPosition(query_pos)
 
+    # reranks the queried results
     def rerank(self, data,question):
         try:
             cross_encoder = CrossEncoder(model_name_or_path=self.rerank_name)
@@ -466,19 +467,7 @@ class MyFrame(MyFrame1):
         )
         return sorted_entries
 
-    def rerank1 (self, data, question):
-        retrieved_docs = data['documents'][0]
-        retrieved_metadata = data['metadatas'][0]
-        retrieved_id =data['ids'][0]
-        scores= list(range (0, len(retrieved_id)))
-        sorted_entries = sorted(
-            zip(scores, retrieved_docs, retrieved_id, retrieved_metadata),
-            key=lambda x: x[0],
-            reverse=False
-        )
-
-        return sorted_entries
-
+    # handles clicking on PDF url
     @override
     def on_url_click(self, event):
         filepath = event.GetString()
@@ -499,6 +488,7 @@ class MyFrame(MyFrame1):
         else:
             wx.MessageBox(f"File not found:\n{filepath}", "Error", wx.ICON_ERROR)
 
+    # prints in search area the query results
     def print_result (self, data):
         timestamp = datetime.now().strftime("%I:%M %p")  # 12-hour format with AM/PM
         self.tc.BeginStyle(wx.richtext.RichTextAttr())
@@ -563,17 +553,17 @@ class MyFrame(MyFrame1):
         self.tc.Newline()
         self.tc.EndStyle()
 
+    # queries collection
     def query_collection(self, text, n, collection):
         data = collection.query(query_texts=text, n_results=n)
-        #data = self.rerank( data, text) #score, doc, metadata
         return data
 
+    # clears search area
     @override
     def clear_tc(self, event):
         self.tc.Clear()
-    
-    
 
+    # handles deleting database from program
     @override
     def delete_build(self, event):
         row = self.dvcBuild.ItemToRow(event.GetItem())
@@ -588,6 +578,7 @@ class MyFrame(MyFrame1):
             self.write_to_tc("*** Unloaded " + build_num + ": " + str(name) + " ***\n")
             self.pdf_fetch(None)
 
+    # opens dialog for settings
     def open_settings(self, event):
         dlg = wx.NumberEntryDialog(self, "Query", "Number of Results = ", "Settings", self.num_result, 1, 100)
         if dlg.ShowModal() == wx.ID_CANCEL:
@@ -596,6 +587,7 @@ class MyFrame(MyFrame1):
         dlg.Destroy()
         self.num_result = result
 
+    # handles help button to direct to User Manual
     def show_help(self, event):
         try: 
             os.startfile(".\\User Manual.pdf")
@@ -603,15 +595,18 @@ class MyFrame(MyFrame1):
             self.write_to_tc("Can't Open or Find User Manual\n")
             self.tc.ShowPosition(self.tc.GetLastPosition())
 
+    # basic loading log
     def start_loading(self):
         self.write_to_tc("Loading...\n")
         self.write_to_tc("-" * 16 + "\n")
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
+    # basic completion log
     def end_loading(self):
         self.write_to_tc("Complete\n")
         self.tc.ShowPosition(self.tc.GetLastPosition())
 
+# chunking algorithm
 def extract_text_chunks(pdf_path):
     chunk_list = []
     meta_list = []
@@ -622,7 +617,6 @@ def extract_text_chunks(pdf_path):
         chunk_overlap=100,
         separators=["\n\n", "\n", ".", " ", ""]
     )
-
 
     with fitz.open(pdf_path) as doc:
         for page_num, page in enumerate(doc):
@@ -653,7 +647,6 @@ def extract_text_chunks(pdf_path):
                 })
 
     return chunk_list, id_list, meta_list
-
 
 if __name__ == '__main__':
     done = False
