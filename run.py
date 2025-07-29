@@ -7,7 +7,7 @@ import time
 from sentence_transformers import CrossEncoder
 import re
 import wx
-from noname import MyFrame1
+from frontend import MyFrame1
 from typing_extensions import override
 import fitz
 import os
@@ -219,7 +219,7 @@ class MyFrame(MyFrame1):
         else:
             with self.lock:
                 self.to_be_processed -= 1
-                #print("Processed:", self.to_be_processed)
+
             attr = wx.richtext.RichTextAttr()
             attr.SetBackgroundColour(wx.Colour("#FFFFFF"))
             attr.SetTextColour(wx.Colour("#000000"))  # Black text
@@ -265,7 +265,6 @@ class MyFrame(MyFrame1):
         self.to_be_processed = len(pathnames)
         self.start_loading()
         thread = threading.Thread(target=self.create_executors, args=(pathnames, collection))
-        #thread.daemon= True
         self.thread_list.append (thread)
         thread.start()
 
