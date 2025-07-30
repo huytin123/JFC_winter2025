@@ -30,7 +30,11 @@ class MyFrame(MyFrame1):
         self.rerank_name = rerank_name
         self.build = []
         self.collection = []
-        self.num_result = 10
+        if 10 > max_search:
+            self.num_result = max_search
+        else:
+            self.num_result = 10
+            
         self.num_search = max_search
         self.to_be_processed = 0
         self.lock = threading.Lock()  
@@ -300,6 +304,7 @@ class MyFrame(MyFrame1):
 
         self.end_loading()
 
+    # delete PDF from collection
     def delete_item(self, name):
         for i in range(len(self.build)):
             data = self.collection[i].get(include=["metadatas"])
@@ -441,7 +446,9 @@ class MyFrame(MyFrame1):
                 result_dict = self.merge_result_dicts ( result_dict,self.query_collection(text, self.num_search, self.collection[i]) )
 
         result_dict = self.rerank(result_dict, text)
-        result_dict = result_dict[0: self.num_result]
+        if len(result_dict) > self.num_result:
+            result_dict = result_dict[0: self.num_result]
+            
         self.print_result(result_dict)
 
         if query_pos:
@@ -579,7 +586,7 @@ class MyFrame(MyFrame1):
 
     # opens dialog for settings
     def open_settings(self, event):
-        dlg = wx.NumberEntryDialog(self, "Query", "Number of Results = ", "Settings", self.num_result, 1, 100)
+        dlg = wx.NumberEntryDialog(self, "Query", "Number of Results = ", "Settings", self.num_result, 1, self.num_search)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
         result = dlg.GetValue()
@@ -683,6 +690,17 @@ if __name__ == '__main__':
         model_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
         rerank_name = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"
         max_search = 100
+        content = """[Settings]
+; Change name of collection within vector database
+name = my_collection
+; Change embedding model from hugging face
+model = sentence-transformers/multi-qa-MiniLM-L6-cos-v1
+; Change reranking model from hugging face
+rerank = cross-encoder/ms-marco-MiniLM-L-6-v2
+; Change number of search used to rerank
+search = 100"""
+        with open('config.ini', 'w') as file:
+            file.write(content)
 
     app = wx.App(False)
     frame = MyFrame(collection_name, model_name, rerank_name, max_search)
